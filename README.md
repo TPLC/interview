@@ -1,9 +1,23 @@
 ## C++
 <details>
-  <summary>malloc 与 new 之间的区别</summary>
+  <summary>malloc/free 与 new/delete 之间的区别</summary>
+  
+  - new/delete 是 **C++ 关键字**，需要编译器支持；malloc/free 是**库函数**，需要头文件支持。
+  - 使用 new 操作符申请内存分配时**无须指定内存块的大小**，编译器会根据类型信息自行计算；而malloc则需要**显式地指出所需内存块的大小**。
+  - new 操作符内存分配成功时，**返回对象类型的指针**，类型严格与对象匹配，无须进行类型转换，故 new 是符合类型安全性的操作符；而 malloc 内存分配成功则是**返回 void 类型指针** ，需要通过强制类型转换将 void* 指针转换成我们需要的类型。
+  - new 内存分配失败时，**抛出 bac_alloc 异常**。malloc 分配内存失败时**返回NULL**。
+  -  new 会先调用 operator new 函数，**申请足够的内存**（通常底层使用malloc实现）。然后**调用类型的构造函数**，初始化成员变量，最后返回自定义类型指针；delete先**调用析构函数**，然后调用 operator delete 函数**释放内存**（通常底层使用free实现）；malloc/free 是库函数，只能动态的申请和释放内存，无法强制要求其做自定义类型对象构造和析构工作。
+  - new操作符从**自由存储区**（free store）上为对象动态分配内存空间，而malloc函数从**堆**上动态分配内存。自由存储区是C++基于new操作符的一个抽象概念，凡是通过new操作符进行内存申请，该内存即为自由存储区。而堆是操作系统中的术语，是操作系统所维护的一块特殊内存，用于程序的内存动态分配，C语言使用malloc从堆上分配内存，使用free释放已分配的对应内存。自由存储区不等于堆，如上所述，布局new就可以不位于堆中。  
+  - operator new/operator delete **允许重载**，malloc/free **不允许重载**。
  
-  区别是什么呢`晕`
-  </details>
+</details>
+<details>
+  <summary>new 与 operator new 的区别</summary>
+
+  - new(new operator) 是一个内置的**运算符**；operator new是一个函数。
+  - new做的工作是调用 operator new(sizeof(A)) + 调用A::A() + 返回指针，即**分配内存+调用构造函数+返回指针**；而 operator new 仅仅做了**分配内存的工作**。
+  
+</details>
 <details>
   <summary>编译各阶段做什么</summary>
 
