@@ -90,7 +90,7 @@
   <summary>重载，覆写，隐藏（自问）</summary>
   
   - 重载：同一可访问区内被声明的几个具有不同参数列表（参数的类型，个数，顺序不同）的同名函数，根据参数列表确定调用那个函数。
-  - 覆盖：派生类中重新定义的函数，其函数名，参数列表，返回类型，所有都必须痛基类中被重写的函数一致，只有函数体不同。
+  - 覆写：派生类中重新定义的函数，其函数名，参数列表，返回类型，所有都必须痛基类中被重写的函数一致，只有函数体不同。
   - 隐藏：根据 C++ 的名称遮掩规则，内层作用域的名称会遮掩外层作用域的名称，在类中，基类是外层作用域，派生类是内层作用域，派生类中的函数与屏蔽与其同名的基类函数。如果派生类中的函数与基类同名，并且参数不同，无论有无 `virtual` 关键字，基类的函数都被隐藏；如果派生类的函数与基类的函数同名，并且参数相同，但是函数没有 `virtual` 关键字，此时基类的函数被隐藏。
   ```C++
   class Base {
@@ -119,6 +119,17 @@
 <details>
   <summary>TCP 粘包拆包</summary>
 
+  - 拆包原因1：要发送的数据大于 TCP 发送缓冲区剩余空间大小。
+  - 拆包原因2：待发送数据大于 MSS（最大报文段长度），TCP 在传输前将进行拆包。
+  - 粘包原因1：要发送的数据小于 TCP 发送缓冲区的大小，TCP 将多次写入缓冲区的数据一次发送出去。
+  - 粘包原因2：接收数据端的应用层没有及时读取接收缓冲区中的数据。
+  - 解决方案1：给每个数据包添加包首部，首部中应该至少包含数据包的长度，这样接收端在接收到数据后，通过读取包首部的长度字段，便知道每一个数据包的实际长度
+  - 解决方案2：发送端将每个数据包封装为固定长度，接收端每次从接收缓冲区中读取固定长度的数据就自然而然的把每个数据包拆分开来。
+  - 解决方案3：可以在数据包之间设置边界，服务端从网络流中按边界分离出各个数据包。
+  - TCP 是基于字节流的，虽然应用层和 TCP 传输层之间的数据交互是大小不等的数据块，但是 TCP 把这些数据块仅仅看成一连串无结构的字节流，没有边界；另外从 TCP 的帧结构也可以看出，在 TCP 的首部没有表示数据长度的字段，基于上面两点，在使用 TCP 传输数据时，才有粘包或者拆包现象发生的可能；UDP 是基于报文发送的，从 UDP 的帧结构可以看出，在 UDP 首部采用了 16bit 来指示 UDP 数据报文的长度，因此在应用层能很好的将不同的数据报文区分开，从而避免粘包和拆包的问题。
+  - 还有 TCP 拆包粘包表现形式的图没有画。
+  > 参考：[TCP粘包，拆包及解决方法](https://blog.csdn.net/wxy941011/article/details/80428470)，[计算机网络-自顶向下方法 3.5.1-TCP 连接]()
+  
 </details>
 <details>
   <summary>HTTP 与 HTTPS 的区别及 HTTPS 流程</summary>
@@ -286,18 +297,292 @@
 
 </details>
 <details>
-  <summary>事务是什么</summary>
+  <summary>事务是什么，事务的几个特性</summary>
+  
+  - MySQL 事务主要用于处理操作量大，复杂度高的数据。比如说，在人员管理系统中，你删除一个人员，你既需要删除人员的基本资料，也要删除和该人员相关的信息，如信箱，文章等等，这样，这些数据库操作语句就构成一个事务。
+  - **原子性**：一个事务（transaction）中的所有操作，要么全部完成，要么全部不完成，不会结束在中间某个环节。事务在执行过程中发生错误，会被回滚（Rollback）到事务开始前的状态，就像这个事务从来没有执行过一样。
+  - **一致性**：在事务开始之前和事务结束以后，数据库的完整性没有被破坏。这表示写入的资料必须完全符合所有的预设规则，这包含资料的精确度、串联性以及后续数据库可以自发性地完成预定的工作。
+  - **隔离性**：数据库允许多个并发事务同时对其数据进行读写和修改的能力，隔离性可以防止多个事务并发执行时由于交叉执行而导致数据的不一致。事务隔离分为不同级别，包括读未提交（Read uncommitted）、读提交（read committed）、可重复读（repeatable read）和串行化（Serializable）。
+  - **持久性**：事务处理结束后，对数据的修改就是永久的，即便系统故障也不会丢失。
+  > 参考：[MySQL 事务](https://www.runoob.com/mysql/mysql-transaction.html)
 
 </details>
 
 ## 设计模式
 <details>
-  <summary>说一下了解的设计模式，我们为什么会有设计模式，有什么优点</summary>
+  <summary>为什么会有设计模式，有什么优点</summary>
+  
+  - 加快开发速度，设计模式是过去的程序员积累的经验，对某些场景下的代码设计有一定的总结，可以直接套用。
+  - 提高**可维护性、可扩展性、可复用性**，初学者写的代码可能只考虑了功能实现，而没有考虑到后期维护问题，后期如果增加新功能代码应该如何修改，类之间的关系可能错综复杂，不熟悉该项目代码的人难以阅读及理解。
+  > 参考：[设计模式简介](https://www.runoob.com/design-pattern/design-pattern-intro.html)，[设计模式总结篇](https://blog.csdn.net/niunai112/article/details/80034203)
+  
+</details>
+<details>
+  <summary>设计模式的几项原则（自问）</summary>
+
+  - **开放封闭原则**：对扩展开放，对修改关闭。在程序需要进行拓展的时候，不能去修改原有的代码。
+  - **里氏代换原则**：任何基类可以出现的地方，子类一定可以出现。LS 里氏代换原则是对开闭原则的补充。实现开闭原则的关键步骤就是抽象化，而基类与子类的继承关系就是抽象化的具体实现，所以里氏代换原则是对实现抽象化的具体步骤的规范。
+  - **依赖倒转原则**：针对接口编程，依赖于抽象而不依赖于具体。
+  - **接口隔离原则**：使用多个隔离的接口，比使用单个接口要好。它还有另外一个意思是：降低类之间的耦合度。由此可见，其实设计模式就是从大型软件架构出发、便于升级和维护的软件设计思想，它强调降低依赖，降低耦合。
+  - **最少知道原则**：一个实体应当尽量少地与其他实体之间发生相互作用，使得系统功能模块相对独立。
+  - **合成复用原则**：尽量使用合成/聚合的方式，而不是使用继承。
+  > 参考：[C++------简单工厂模式，工厂方法模式和抽象工厂模式](https://www.cnblogs.com/zhangzeze/p/9392598.html)
 
 </details>
 <details>
-  <summary>单例模式的好处，工厂模式的好处，主要解决的问题有哪些</summary>
+  <summary>简单工厂模式</summary>
 
+  - 简单工厂模式是由一个工厂对象决定创建出哪一种产品类的实例。
+  - 例子：创建一个操作符工厂，该工厂可以生产各种操作符实例，客户在生产前需要告知该工厂类需要生产的操作符实例类型。
+  ```C++
+  #include <iostream>
+  #include <string>
+  using namespace std;
+  #define ADD 1
+  #define SUB 2
+  #define MUL 3
+  #define DIV 4
+
+  class Operation {
+  public:
+      double getNumberA() { return _numberA; }
+      double getNumberB() { return _numberB; }
+      void setNumberA(int a) { _numberA = a; }
+      void setNumberB(int b) { _numberB = b; }
+      virtual double GetResult() { double result = 0; return result; }
+  private:
+      double _numberA = 0;
+      double _numberB = 0;
+  };
+
+  class OperationAdd : public Operation {
+  public:
+      virtual double GetResult() { double result = 0; result = getNumberA() + getNumberB(); return result; }
+  };
+
+  class OperationSub : public Operation {
+  public:
+      virtual double GetResult() { double result = 0; result = getNumberA() - getNumberB(); return result; }
+  };
+
+  class OperationMul : public Operation {
+  public:
+      virtual double GetResult() { double result = 0; result = getNumberA() * getNumberB(); return result; }
+  };
+
+  class OperationDiv : public Operation {
+  public:
+      virtual double GetResult() {
+          double result = 0;
+          if (!getNumberB()) throw "Division by zero condition!";
+          result = getNumberA() / getNumberB();
+          return result;
+      }
+  };
+
+  class OperationFactory {
+  public:
+      static Operation* createOperate(int operate) {
+          Operation *op = nullptr;
+          switch(operate) {
+              case ADD: op = new OperationAdd(); break;
+              case SUB: op = new OperationSub(); break;
+              case MUL: op = new OperationMul(); break;
+              case DIV: op = new OperationDiv(); break;
+          }
+          return op;
+      }
+
+  private:
+      static Operation* op;
+  };
+  static Operation* op = nullptr;
+
+  int main() {
+      Operation* _operator_ = OperationFactory::createOperate(SUB);
+      _operator_->setNumberA(5);
+      _operator_->setNumberB(2);
+      double res = _operator_->GetResult();
+      cout << "result: " << res << endl;
+      return 0;
+  }
+  ```
+  - 优点：工厂类包含了必要的逻辑判断，根据客户端的选择条件动态实例化相关的类，对于客户端来说，去除了与具体产品的依赖。
+  - 缺点：违反了开放封闭原则：对扩展开放，对修改关闭。如上面的例子，如果要增加一个求 `NumberA` 的 `NumberB` 次方的功能，除了要添加一个 `Operation` 的派生类`OperationPow`，还要对 `OperationFactory` 进行修改，在 `createOperate` 函数的 `switch` 内添加一个属于 `OperationPow` 的分支条件。
+  > 参考：[C++------简单工厂模式，工厂方法模式和抽象工厂模式](https://www.cnblogs.com/zhangzeze/p/9392598.html)，[大话设计模式-简单设计模式]()
+
+</details>
+<details>
+  <summary>工厂方法模式</summary>
+  
+  - 工厂方法模式是指定义一个用于创建对象的接口，让子类决定实例化哪个类，将创建过程延迟到子类中进行。
+  - 例子：创建两个工厂，一个用于生产学雷锋的大学生，一个用于生产社区志愿者，当有老人需要帮助的时候，客户如果想要大学生可以找生产大学生的工厂，如果想要志愿者可以找生产志愿者的工厂。
+  ```C++
+  #include <iostream>
+  #include <string>
+  using namespace std;
+
+  class LeiFeng {
+  public:
+      virtual void swap() { cout << "swap" << endl; }
+      virtual void wash() { cout << "wash" << endl; }
+      virtual void buyRice() { cout << "buyRice" << endl; }
+  };
+
+  class Upgrade: public LeiFeng {
+  public:
+      virtual void swap() { cout << "upgrade swap" << endl; }
+      virtual void wash() { cout << "upgrade wash" << endl; }
+      virtual void buyRice() { cout << "upgrade buyRice" << endl; }
+  };
+
+  class Volunteer: public LeiFeng {
+      virtual void swap() { cout << "volunteer swap" << endl; }
+      virtual void wash() { cout << "volunteer wash" << endl; }
+      virtual void buyRice() { cout << "volunteer buyRice" << endl; }
+  };
+
+  class IFactory {
+  public:
+      virtual LeiFeng* createLeiFeng() = 0;
+  };
+
+  class UndergraduateFactory: public IFactory {
+  public:
+      virtual LeiFeng* createLeiFeng() { return new Upgrade(); }
+  };
+
+  class VolunteerFactory: public IFactory {
+  public:
+      virtual LeiFeng* createLeiFeng() { return new Volunteer(); }
+  };
+
+  int main() {
+      IFactory* factory = new VolunteerFactory();
+      LeiFeng* student = factory->createLeiFeng();
+      student->swap();
+      student->wash();
+      student->buyRice();
+      return 0;
+  }
+  ```
+  - 优点：保留了简单工厂模式的优点，即据客户端的选择条件动态实例化相关的类，对于客户端来说，去除了与具体产品的依赖；同时也克服了简单工厂违背开放封闭原则的缺点。
+  - 缺点：每次增加一个新产品，除了需要增加一个该产品的类（简单工厂模式也需要），还要再增加一个该产品的工厂类。
+  > 参考：[C++------简单工厂模式，工厂方法模式和抽象工厂模式](https://www.cnblogs.com/zhangzeze/p/9392598.html)，[大话设计模式-简单设计模式]()
+
+</details>
+<details>
+  <summary>抽象工厂模式</summary>
+
+  - 抽象工厂模式是指提供一个创建一系列相关或相互依赖对象的接口，而无需指定它们具体的类。
+  - 例子：创建两个工厂，一个使用 SqlServer 语句作为材料，一个使用 Access 语句作为材料，两个工厂都会生产一系列不同的产品，但是两个工厂的生产的产品系列都是一样的，一个工厂有的产品另一个工厂也会生产同系列的产品，只是两个工厂使用的原材料不同，客户可以选择其中一个工厂为其生产所有不同系列的产品。
+  ```C++
+  #include <iostream>
+  #include <string>
+  using namespace std;
+
+  class User {
+  public:
+      int getId() { return id; }
+      string getName() { return name; }
+      void setId(int i) { id = i; }
+      void setName(string n) { name = n; }
+
+  private:
+      int id;
+      string name;
+  };
+
+  class Department {
+  public:
+      int getId() { return id; }
+      string getDepartName() { return depart_name; }
+      void setId(int i) { id = i; }
+      void setDepartName(string n) { depart_name = n; }
+
+  private:
+      int id;
+      string depart_name;
+  };
+
+  class IUser {
+  public:
+      virtual void insert(User user) = 0;
+      virtual User getUser(int id) = 0;
+  };
+
+  class SqlServerUser: public IUser {
+  public:
+      virtual void insert(User user) { cout << "sqlServer insert" << endl; }
+      virtual User getUser(int id) { cout << "sqlServer getUser" << endl; return User(); }
+  };
+
+  class AccessUser: public IUser {
+  public:
+      virtual void insert(User user) { cout << "access insert" << endl; }
+      virtual User getUser(int id) { cout << "access getUser" << endl; return User(); }
+  };
+
+  class IDepartment {
+  public:
+      virtual void insert(Department department) = 0;
+      virtual Department getDepartment(int id) = 0;
+  };
+
+  class SqlServerDepartment: public IDepartment {
+  public:
+      virtual void insert(Department department) { cout << "sqlServer insert" << endl; }
+      virtual Department getDepartment(int id) { cout << "sqlServer getDepartmentUser" << endl; return Department(); }
+  };
+
+  class AccessDepartment: public IDepartment {
+  public:
+      virtual void insert(Department department) { cout << "access insert" << endl; }
+      virtual Department getDepartment(int id) { cout << "access getDepartmentUser" << endl; return Department(); }
+  };
+
+  class IFactory {
+  public:
+      virtual IUser* createUser() = 0;
+      virtual IDepartment* createDepartment() = 0;
+  };
+
+
+  class SqlServerFactory: public IFactory {
+  public:
+      virtual IUser* createUser() { return new SqlServerUser(); }
+      virtual IDepartment* createDepartment() { return new SqlServerDepartment(); }
+  };
+
+  class AccessFactory: public IFactory {
+  public:
+      virtual IUser* createUser() { return new AccessUser(); }
+      virtual IDepartment* createDepartment() { return new AccessDepartment(); }
+  };
+
+  int main() {
+      User* user = new User();
+      Department* department =  new Department();
+      IFactory* factory = new SqlServerFactory();
+      IUser* iu = factory->createUser();
+      iu->getUser(1);
+      iu->insert(*user);
+      IDepartment* ide = factory->createDepartment();
+      ide->getDepartment(1);
+      ide->insert(*department);
+      return 0;
+  }
+  ```
+  - 优点：用户可以更为便利的交换一系列产品，如上面的例子，此时使用的是 SqlServer 作为数据库，使用的插入、查找都是 SqlServer 语句，如果要切换成 Access 作为数据库，只需要将 `IFactory* factory = new SqlServerFactory();` 改为 `IFactory* factory = new AccessFactory();`，这里的插入、查找就是产品，`SqlServerFactory` 和 `AccessFactory` 生产出来的插入和查找都是不一样的。
+  - 缺点：扩展十分麻烦，如果需要在增加一个项目表 IProject，则需要增加 `IProject`，`SqlserverProject`，`AccessProject` 共三个类，还需要修改`IFactory`，`SqlserverFactory`，`AccessFactory`共三个类。《大话设计模式》一书中介绍了使用**反射 + 抽象工厂**进行设计的抽象工厂模式，更占优势，但是 C++ 中并没有反射功能，实现起来可能比较麻烦，这个的实现先暂时搁置。
+  > 参考：[C++------简单工厂模式，工厂方法模式和抽象工厂模式](https://www.cnblogs.com/zhangzeze/p/9392598.html)，[大话设计模式-简单设计模式]()
+
+</details>
+<details>
+  <summary>单例模式</summary>
+  
+  - 单例模式保证一个类只有一个实例，并提供一个访问它的全局访问点。
+  
 </details>
 
 ## 项目
