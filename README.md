@@ -185,6 +185,22 @@
 
 ## 操作系统
 <details>
+  <summary>为什么需要操作系统（自问）</summary>
+  
+  - **提供抽象**：操作系统可以隐藏硬件，呈现给程序良好、清晰、优雅、一致的抽象，将丑陋的硬件转变未美丽的抽象。
+  - **资源管理**：操作系统可以记录哪个程序在使用什么资源，对资源请求进行分配，评估使用代价，并且未不同的程序和用户调节互相冲突的资源请求。
+  > 参考：[现代操作系统 1.1-什么是操作系统]()
+
+</details>
+<details>
+  <summary>程序与进程之间的关系（自问）</summary>
+  
+  - 一个进程是某种类型的一个活动，它有程序、输入、输出以及状态。
+  - 想象一位有一手好厨艺的计箕机科学家正在为他的女儿烘制生日蛋糕。他有做生日蛋糕的食谱，厨房里有所需的原料：面粉、鸡蛋、糖、香草汁等。在这个比喻中，做蛋糕的食谱就是程序（即用适当形式描述的算法），计算机科学家就是处理器（CPU)），而做蛋糕的各种原料就是输入数据。进程就是厨师阅读食谱、取来各种原料以及烘制蛋糕等一系列动作的总和。
+  > 参考：[现代操作系统 2.1-进程]()
+
+</details>
+<details>
   <summary>线程调用机制</summary>
 
 </details>
@@ -206,6 +222,12 @@
 </details>
 <details>
   <summary>fork 功能</summary>
+  
+  - 在 UNIX系统中，只有一个系统调用可以用来创建进程：`fork`，这个系统调用会创建一个与调用进程相同的副本。在调用了 `fork` 以后，这两个进程（父进程与子进程）拥有相同的内存映像、同样的环境和同样的打开文件。
+  - 通常，在 `fork` 创建子进程后，子进程接着执行 `execve` 系统调用，以修改其内存映像并运行一个新的程序。例如，当用户在 shell 中键入命令 `sort` 后，shell 就创建一个子进程，这个子进程就执行 `sort`。
+  - 之所以要安排两步建立进程，是为了在 `fork` 之后但在 `execve` 之前允许该子进程处理其文件描述符，这样就可以完成对标准输入文件、标准输出文件和标准错误文件的重定向。
+  - 而在 Windows 中，使用 `CreateProcess` 代替 `fork` + `execve`，既处理进程的创建，也负责把正确的程序装入新的进程。
+  > 参考：[现代操作系统 2.1-进程]()
 
 </details>
 <details>
@@ -294,6 +316,16 @@
 ## 数据库
 <details>
   <summary>MySQL 索引为何失效</summary>
+  
+  - 索引可以加速查询。
+  - `LIKE` 以 `%` 开头，索引无效。
+  - `or` 语句前后没有同时使用索引，索引失效。
+  - 当全表扫描速度比索引速度快时，MySQL 会使用全表扫描，索引失效。
+  - 如果存在 NULL 值条件，索引失效。
+  - 查询条件上如果对索引列使用函数，索引无效。
+  - 当查询条件存在隐式转换时，索引会失效。
+  - 还有许多，未一一列举。
+  > 参考：[索引失效的情况有哪些，索引何时会失效（全面总结）](https://blog.csdn.net/bless2015/article/details/84134361?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-7.channel_param&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-7.channel_param)
 
 </details>
 <details>
