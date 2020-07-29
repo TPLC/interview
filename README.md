@@ -396,7 +396,7 @@
   private:
       static Operation* op;
   };
-  static Operation* op = nullptr;
+  Operation* OperationFactory::op = nullptr;
 
   int main() {
       Operation* _operator_ = OperationFactory::createOperate(SUB);
@@ -582,7 +582,120 @@
   <summary>单例模式</summary>
   
   - 单例模式保证一个类只有一个实例，并提供一个访问它的全局访问点。
-  
+  - 有缺陷的懒汉式单例模式，此方法有两个缺陷，一个是**线程安全问题**，当多线程获取单例时有可能引发竞态条件：如果一个线程在 `if` 语句中判断 `m_instance` 为空，假定此时只是刚刚判断完条件，刚进入内部，要执行但是还没有执行 `m_instance = new Singleton();` 语句，恰好第二个线程也尝试获取单例，这个时候判断 `m_instance` 还是空的，因为此时第一个线程还没有成功创建单例，于是线程一与线程二都会进行实例化，这样就有两个实例了，不符合单例的定义，使用加锁可解决此问题；二是**内存泄漏问题**，可能会忘记对单例对象进行 `delete`操作，这可能会造成内存泄漏，使用智能指针可解决此问题。
+  ```C++
+  #include <iostream>
+  using namespace std;
+
+  class Singleton {
+  public:
+      static Singleton* getInstance() { if (m_instance == nullptr) m_instance = new Singleton(); return m_instance; }
+      ~Singleton() { cout << "singleton deconstruct!" << endl; }
+  private:
+      static Singleton* m_instance;
+      Singleton () { cout << "singleton construct!" << endl; };
+      Singleton(const Singleton& singleton) = delete;
+      Singleton& operator=(const Singleton& singleton) = delete;
+  };
+  Singleton* Singleton::m_instance = nullptr;
+
+  int main() {
+      Singleton* instance1 = Singleton::getInstance();
+      Singleton* instance2 = Singleton::getInstance();
+      delete instance1;
+      return 0;
+  }
+  ```
+  - 线程安全、内存安全的单例模式，使用 `shared_ptr`，使用对象管理资源的思想，保证内存安全，加入双检锁，提供线程安全，为什么要有两重判断呢，这是因为创建锁的开销比较大，如果只是在 `if` 判断前加一个锁，那么不管之前是否创建过单例，每次使用这个函数的时候都进行加锁操作，成本较高，如果在加锁操作外面加一个 `if` 判断语句的话，如果之前创建过单例，就不会进行加锁操作了，但是加锁操作后面的那个 `if` 判断还是要保留的，因为两个或多个线程也许都可以通过第一个 `if` 判断，在一个线程执行完创建实例的工作后，由于没有另外的判断，已经通过第一个 `if` 判断的其他线程则会继续创建实例，所以需要加上两个判断语句。但实际上双检索有严重 bug，由于内存读写的乱序执行。
+  ```C++
+  #include <iostream>
+  #include <memory>
+  #include <mutex>
+  using namespace std;
+
+  class Singleton {
+  public:
+      static shared_ptr<Singleton> getInstance() {
+          if (m_instance == nullptr) {
+              lock_guard<mutex> lock(m_mutex);
+              if (m_instance == nullptr)
+                  m_instance = shared_ptr<Singleton>(new Singleton());
+          }
+          return m_instance;
+      }
+      ~Singleton() { cout << "singleton deconstruct!" << endl; }
+
+  private:
+      static shared_ptr<Singleton> m_instance;
+      static mutex m_mutex;
+      Singleton () { cout << "singleton construct!" << endl; };
+      Singleton(const Singleton& singleton) = delete;
+      Singleton& operator=(const Singleton& singleton) = delete;
+  };
+  shared_ptr<Singleton> Singleton::m_instance = nullptr;
+  mutex Singleton::m_mutex; 
+
+  int main() {
+      shared_ptr<Singleton> instance1 = Singleton::getInstance();
+      shared_ptr<Singleton> instance2 = Singleton::getInstance();
+      return 0;
+  }
+  ```
+  - Magic Static 版懒汉模式（推荐），这里所用到的特性是 C++11 标准中的 **Magic Static** 特性：如果当变量在初始化的时候，并发同时进入声明语句，并发线程将会阻塞等待初始化结束。这样保证了并发线程在获取静态局部变量（C++ 静态变量的生存期是从声明到程序结束）的时候一定是初始化过的，所以具有线程安全性。注意这里 `getInstance` 函数返回的是引用而不是指针，理由主要是无法避免用户使用 `delete m_instance;` 导致对象被提前销毁。
+  ```C++
+  #include <iostream>
+  #include <memory>
+  #include <mutex>
+  using namespace std;
+
+  class Singleton {
+  public:
+      static Singleton& getInstance() {
+          static Singleton m_instance;
+          return m_instance;
+      }
+      ~Singleton() { cout << "singleton deconstruct!" << endl; }
+
+  private:
+      Singleton () { cout << "singleton construct!" << endl; };
+      Singleton(const Singleton& singleton) = delete;
+      Singleton& operator=(const Singleton& singleton) = delete;
+  };
+
+  int main() {
+      Singleton& instance1 = Singleton::getInstance();
+      Singleton& instance2 = Singleton::getInstance();
+      return 0;
+  }
+  ```
+  - 饿汉式单例模式，饿汉式单例模式在单例定义的时候就会进行实例化，而懒汉式单例模式在需要使用的时候进行实例化。饿汉模式是线程安全的。
+  ```C++
+  #include <iostream>
+  #include <memory>
+  #include <mutex>
+  using namespace std;
+
+  class Singleton {
+  public:
+      static Singleton* getInstance() { return m_instance; }
+      ~Singleton() { cout << "singleton deconstruct!" << endl; }
+
+  private:
+      static Singleton* m_instance;
+      Singleton () { cout << "singleton construct!" << endl; };
+      Singleton(const Singleton& singleton) = delete;
+      Singleton& operator=(const Singleton& singleton) = delete;
+  };
+  Singleton* Singleton::m_instance = new Singleton();
+
+  int main() {
+      Singleton* instance1  = Singleton::getInstance();
+      Singleton* instance2 = Singleton::getInstance();
+      return 0;
+  }
+  ```
+  - 懒汉式和饿汉式的选择：在访问量较小时，采用懒汉实现，这是以时间换空间；在访问量比较大，采用饿汉实现，这是以空间换时间。
+  > 参考：[C++ 单例模式总结与剖析](https://www.cnblogs.com/sunchaothu/p/10389842.html)，[设计模式之单例模式（C++ 版）](https://segmentfault.com/a/1190000015950693)
 </details>
 
 ## 项目
