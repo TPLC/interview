@@ -128,6 +128,11 @@
 
 </details>
 <details>
+  <summary>多态</summary>
+
+
+</details>
+<details>
   <summary>重载，覆写，隐藏（自问）</summary>
   
   - 重载：同一可访问区内被声明的几个具有不同参数列表（参数的类型，个数，顺序不同）的同名函数，根据参数列表确定调用那个函数。
@@ -200,8 +205,155 @@
 <details>
   <summary>为什么虚函数是动态绑定</summary>
   
-  - 当一个对象的指针需要调用一个它的虚函数的时候，首先它需要找到它的虚函数表，在虚函数表中找到该虚函数的地址，然后运行处于该地址上的函数，但问题是只有当对象实例化以后才拥有一个虚函数表，而实例化在运行阶段发生，不在编译阶段发生。举个例子，有一个父类 `class A` 和一个他的派生类 `class B`，`class A` 有一个虚函数 `virtual void func1();`，和一个非虚函数 `void func2();`，创建一个指针 `A* a = new B`， 在程序中写入 `a->func1();`，在编译阶段，编译器知道 `a` 是一个 `class A` 类型的指针，但是他不知道他指向一个 `class B` 对象，且此时 `a` 所指向的内存并没有存放虚函数表的地址，也就不知道虚函数的地址，所以**编译期间无法确定虚函数的函数地址**，但是如果在程序中写入 `a->func2();`，由于 `func2()` 不是虚函数，他的函数地址在编译阶段可以确定。所以虚函数是动态绑定，在运行期可确定，非虚函数是静态绑定，在编译器可确定。
+  - 静态绑定：
+  - 动态绑定：
+  - 当一个对象的指针需要调用一个它的虚函数的时候，首先它需要找到它的虚函数表，在虚函数表中找到该虚函数的地址，然后运行处于该地址上的函数，但问题是只有当对象实例化以后才拥有一个虚函数表，而实例化在运行阶段发生，不在编译阶段发生。举个例子，有一个父类 `class A` 和一个他的派生类 `class B`，`class A` 有一个虚函数 `virtual void func1();`，和一个非虚函数 `void func2();`，创建一个指针 `A* a = new B`， 在程序中写入 `a->func1();`，在编译阶段，编译器只知道 `a` 是一个 `class A` 类型的指针，但是此时 `a` 所指向的内存并没有存放虚函数表的地址，也就不知道虚函数的地址，所以**编译期间无法确定虚函数的函数地址**，但是如果在程序中写入 `a->func2();`，由于 `func2()` 不是虚函数，他的函数地址在编译阶段可以确定。所以虚函数是动态绑定，在运行期可确定，非虚函数是静态绑定，在编译器可确定。
   > 参考：[为什么虚函数在编译期间无法绑定](https://blog.csdn.net/qq_41786318/article/details/81979658)
+
+</details>
+<details>
+  <summary>引用是否能实现动态绑定，为什么引用可以实现</summary>
+
+
+</details>
+<details>
+  <summary>const 用法</summary>
+
+
+</details>
+<details>
+  <summary>static 用法</summary>
+
+
+</details>
+<details>
+  <summary>指针和引用的区别</summary>
+
+
+</details>
+<details>
+  <summary>堆和栈的区别</summary>
+
+
+</details>
+<details>
+  <summary>struct 和 class 的区别</summary>
+
+
+</details>
+<details>
+  <summary>C 和 C++ 的区别</summary>
+
+
+</details>
+<details>
+  <summary>define 和 const 的区别</summary>
+
+
+</details>
+<details>
+  <summary>C 语言实现面向对象</summary>
+
+
+</details>
+<details>
+  <summary>C++ 内存管理</summary>
+
+
+</details>
+<details>
+  <summary>析构函数一般写成虚函数的原因</summary>
+
+
+</details>
+<details>
+  <summary>构造函数为什么一般不定义为虚函数</summary>
+
+
+</details>
+<details>
+  <summary>构造函数或者析构函数中调用虚函数会怎样</summary>
+
+
+</details>
+<details>
+  <summary>深拷贝和浅拷贝的区别</summary>
+
+
+</details>
+<details>
+  <summary>对象复用的了解，零拷贝的了解</summary>
+
+
+</details>
+<details>
+  <summary>介绍C++所有的构造函数</summary>
+
+
+</details>
+<details>
+  <summary>什么情况下会调用拷贝构造函数</summary>
+
+
+</details>
+<details>
+  <summary>结构体内存对齐方式和为什么要进行内存对齐</summary>
+
+
+</details>
+<details>
+  <summary>内存泄露的定义，如何检测与避免</summary>
+
+
+</details>
+<details>
+  <summary>遇到 coredump 要怎么调试</summary>
+
+
+</details>
+<details>
+  <summary>内存检查工具的了解</summary>
+
+
+</details>
+<details>
+  <summary>模板的用法和适用场景</summary>
+
+
+</details>
+<details>
+  <summary>成员初始化列表的概念，为什么用成员初始化列表会快一些</summary>
+
+
+</details>
+<details>
+  <summary>C++的四种强制转换</summary>
+
+
+</details>
+<details>
+  <summary>C++ 的 STL 介绍</summary>
+
+
+</details>
+<details>
+  <summary>STL 源码中的 hash 表的实现</summary>
+
+
+</details>
+<details>
+  <summary>STL 中 unordered_map 和 map 的区别</summary>
+
+
+</details>
+<details>
+  <summary>STL 中 vector 的实现</summary>
+
+
+</details>
+<details>
+  <summary>vector 使用的注意点及其原因，频繁对 vector 调用 push_back() 对性能的影响和原因</summary>
+
 
 </details>
 
@@ -334,6 +486,141 @@
   - **URN**：统一资源名称，URN 表示一个实体的标识符，实体和 URN 唯一对应，URN 是 URI 的子集。
   - **URI**：统一资源标识符，URI 用字符串标识某一互联网资源，互联网资源和 URI 唯一对应。
   > 参考：[HTTP 协议中 URI 和 URL 有什么区别](https://www.zhihu.com/question/21950864)
+
+</details>
+<details>
+  <summary>TCP 拥塞控制</summary>
+
+
+</details>
+<details>
+  <summary>从浏览器中输入一个 url 到回显的全过程</summary>
+
+
+</details>
+<details>
+  <summary>对路由协议的了解与介绍。内部网关协议 IGP 包括 RIP，OSPF，和外部网关协议 EGP 和 BGP</summary>
+
+
+</details>
+<details>
+  <summary>路由协议所使用的算法</summary>
+
+
+</details>
+<details>
+  <summary>TCP 和 UDP 的区别</summary>
+
+
+</details>
+<details>
+  <summary>TCP 和 UDP 相关的协议与端口号</summary>
+
+
+</details>
+<details>
+  <summary>网页解析的过程与实现方法</summary>
+
+
+</details>
+<details>
+  <summary>网络层分片的原因与具体实现</summary>
+
+
+</details>
+<details>
+  <summary>TCP 握手以及每一次握手客户端和服务器端处于哪个状态（11种状态）</summary>
+
+
+</details>
+<details>
+  <summary>超时重传机制（不太高频）</summary>
+
+
+</details>
+<details>
+  <summary>TCP 怎么保证可靠性</summary>
+
+
+</details>
+<details>
+  <summary>流量控制的介绍，采用滑动窗口会有什么问题（死锁可能，糊涂窗口综合征）</summary>
+
+
+</details>
+<details>
+  <summary>TCP 滑动窗口协议</summary>
+
+
+</details>
+<details>
+  <summary>拥塞控制和流量控制的区别</summary>
+
+
+</details>
+<details>
+  <summary>http / 1.0 和http / 1.1 的区别</summary>
+
+
+</details>
+<details>
+  <summary>由 http 升级为 https 需要做哪些操作</summary>
+
+
+</details>
+<details>
+  <summary>URL 包括哪三个部分</summary>
+
+
+</details>
+<details>
+  <summary>一个机器能够使用的端口号上限是多少，为什么，可以改变吗，那如果想要用的端口超过这个限制怎么办</summary>
+
+
+</details>
+<details>
+  <summary>对称密码和非对称密码体系</summary>
+
+
+</details>
+<details>
+  <summary>数字证书的了解（高频）</summary>
+
+
+</details>
+<details>
+  <summary>客户端为什么信任第三方证书</summary>
+
+
+</details>
+<details>
+  <summary>RSA 加密算法，MD5 原理</summary>
+
+
+</details>
+<details>
+  <summary>单条记录高并发访问的优化</summary>
+
+
+</details>
+<details>
+  <summary>介绍一下 ping 的过程，分别用到了哪些协议</summary>
+
+
+</details>
+<details>
+  <summary>有没有抓过 TCP 包，描述一下</summary>
+
+
+</details>
+<details>
+  <summary>一个ip配置多个域名，靠什么识别</summary>
+
+
+</details>
+<details>
+  <summary>服务器攻击（DDos攻击）</summary>
+
 
 </details>
 
@@ -536,8 +823,108 @@
   > 参考：[函数调用过程中栈到底是怎么压入和弹出的](https://www.zhihu.com/question/22444939/answer/22200552)
 
 </details>
+<details>
+  <summary>一个进程可以创建多少线程，和什么有关</summary>
+  
+</details>
+<details>
+  <summary>一个程序从开始运行到结束的完整过程（四个过程）</summary>
+  
+</details>
+<details>
+  <summary>哲学家就餐，银行家，读者写者，生产者消费者</summary>
+  
+</details>
+<details>
+  <summary>海量数据的 bitmap 使用原理</summary>
+  
+</details>
+<details>
+  <summary>布隆过滤器原理与优点</summary>
+  
+</details>
+<details>
+  <summary>布隆过滤器处理大规模问题时的持久化，包括内存大小受限、磁盘换入换出问题</summary>
+  
+</details>
+<details>
+  <summary>同步 I/O 和异步 I/O</summary>
+  
+</details>
+<details>
+  <summary>文件读写使用的系统调用</summary>
+  
+</details>
+<details>
+  <summary>线程池的了解、优点、调度处理方式和保护任务队列的方式</summary>
+  
+</details>
+<details>
+  <summary>怎么回收线程</summary>
+  
+</details>
+<details>
+  <summary>僵尸进程问题</summary>
+  
+</details>
+<details>
+  <summary>异常和中断的区别</summary>
+  
+</details>
+<details>
+  <summary>一般情况下在 Linux/windows 平台下栈空间的大小</summary>
+  
+</details>
 
 ## Linux
+<details>
+  <summary>Linux的I/O模型介绍以及同步异步阻塞非阻塞的区别（超级重要）</summary>
+  
+</details>
+<details>
+  <summary>文件系统的理解（EXT4，XFS，BTRFS）</summary>
+  
+</details>
+<details>
+  <summary>文件处理 grep，awk，sed 这三个命令必知必会</summary>
+  
+</details>
+<details>
+  <summary>IO 复用的三种方法（select，poll，epoll）深入理解，包括三者区别，内部原理实现</summary>
+  
+</details>
+<details>
+  <summary>Epoll的ET模式和LT模式（ET的非阻塞）</summary>
+  
+</details>
+<details>
+  <summary>查询进程占用CPU的命令（注意要了解到used，buf，***代表意义）</summary>
+  
+</details>
+<details>
+  <summary>linux的其他常见命令（kill，find，cp等等）</summary>
+  
+</details>
+<details>
+  <summary>shell 脚本用法</summary>
+  
+</details>
+<details>
+  <summary>硬连接和软连接的区别</summary>
+  
+</details>
+<details>
+  <summary>文件权限怎么看（rwx）</summary>
+  
+</details>
+<details>
+  <summary>文件的三种时间（mtime, atime，ctime），分别在什么时候会改变</summary>
+  
+</details>
+<details>
+  <summary>Linux 监控网络带宽的命令，查看特定进程的占用网络资源情况命令</summary>
+  
+</details>
 
 ## 数据结构
 <details>
@@ -641,6 +1028,86 @@
   - **隔离性**：数据库允许多个并发事务同时对其数据进行读写和修改的能力，隔离性可以防止多个事务并发执行时由于交叉执行而导致数据的不一致。事务隔离分为不同级别，包括读未提交（Read uncommitted）、读提交（read committed）、可重复读（repeatable read）和串行化（Serializable）。
   - **持久性**：事务处理结束后，对数据的修改就是永久的，即便系统故障也不会丢失。
   > 参考：[MySQL 事务](https://www.runoob.com/mysql/mysql-transaction.html)
+
+</details>
+<details>
+  <summary>关系型和非关系型数据库的区别（各自优点）</summary>
+
+</details>
+<details>
+  <summary>常用SQL语句（DDL,DML,DCL,TCL）</summary>
+
+</details>
+<details>
+  <summary>数据库中 join 的类型与区别（inner join, outer join, cross join, natural join, self join），注意适用场景和 sql 语句的编写</summary>
+
+</details>
+<details>
+  <summary>数据库的索引类型</summary>
+
+</details>
+<details>
+  <summary>聚集索引和非聚集索引的区别（叶节点存储内容）</summary>
+
+</details>
+<details>
+  <summary>唯一性索引和主码索引的区别</summary>
+
+</details>
+<details>
+  <summary>索引的优缺点，什么时候使用索引，什么时候不能使用索引（重点）</summary>
+
+</details>
+<details>
+  <summary>索引的底层实现（B+树，为何不采用红黑树，B树）</summary>
+
+</details>
+<details>
+  <summary>索引最左前缀问题</summary>
+
+</details>
+<details>
+  <summary>Mysql 的优化（高频，索引优化，性能优化）</summary>
+
+</details>
+<details>
+  <summary>数据库引擎介绍，innodb和myisam的特点与区别</summary>
+
+</details>
+<details>
+  <summary>数据库隔离性设置不同会出现的问题（脏读、不可重复读、丢失修改、幻读）</summary>
+
+</details>
+<details>
+  <summary>数据库的隔离级别，mysql 和 Oracle 的隔离级别分别是什么</summary>
+
+</details>
+<details>
+  <summary>数据库连接池的作用</summary>
+
+</details>
+<details>
+  <summary>Mysql 的表空间方式，各自特点</summary>
+
+</details>
+<details>
+  <summary>分布式事务</summary>
+
+</details>
+<details>
+  <summary>数据库的范式</summary>
+
+</details>
+<details>
+  <summary>数据的锁的种类，加锁的方式</summary>
+
+</details>
+<details>
+  <summary>视图的作用与使用方法（如何删除等）</summary>
+
+</details>
+<details>
+  <summary>分库分表，主从复制，读写分离</summary>
 
 </details>
 
