@@ -232,7 +232,18 @@
 </details>
 <details>
   <summary>指针和引用的区别</summary>
-
+  
+  - 指针是一个变量，这个变量存储的是一个地址；引用只是原变量的一个别名。
+  - 指针占有一块自己的内存空间；而引用和原变量的内存空间是一样的。
+  - 使用 `sizeof` 看一个指针的大小是4；而引用则是被引用对象的大小。
+  - 指针可以初始化为空值；而引用不可以为空，必须被初始化，且必须是对一个已存在对象的引用。
+  - 指针可以有多级；引用只有一级。
+  - 指针使用 `++` 是指向下一块地址；而引用使用 `++` 就是原变量进行 `++` 操作。
+  - 有 `const` 指针，`A* const a;` 是正确的，指针是一个变量，可以有 `const` 属性；没有 `const` 引用，`A b; A& const a = b;;` 是错误的，因为引用自身不是一个对象，是一个别名，本来就是不能修改的，就无所谓 `const` 属性一说，如果把 `const` 放在 `A&` 前面，那么修饰的就是引用所指向的那个对象了；而对象是有 `const` 属性的，自然是没问题的。
+  - 指针在使用中可以指向其它对象；但是引用只能是一个对象的引用，不能被改变。
+  - 如果返回动态内存分配的对象或者内存，必须使用指针；引用可能引起内存泄露。
+  - 指针需要解引用才能对被指对象进行操作，引用不需要。
+  > 参考：[C++面试宝典导读](https://www.nowcoder.com/tutorial/93/a34ed23d58b84da3a707c70371f59c21)，[引用没有const，指针有const](https://www.zhihu.com/question/291649692)
 
 </details>
 <details>
@@ -241,13 +252,14 @@
 
 </details>
 <details>
-  <summary>struct 和 class 的区别和联系</summary>
+  <summary>struct 和 class 的区别</summary>
 
   - **默认继承权**：class 默认 private 继承，struct 默认 public 继承。
   - **成员默认访问权限**：class 的成员默认是 private 权限，struct 默认是 public 权限。
   - C++ 中 struct 能包含成员函数，有自己的构造函数，可以有析构函数，支持继承、多态，支持private、protected、public关键字。
   - class 可以继承自struct修饰的类；同时，struct 也可以继承自 class 修饰的类。当 class 修饰的类作为父类，struct 修饰的类作为子类时，默认继承是 private 还是 public 取决于子类而不是父类，这里由于是子类是 struct 修饰的，所以默认继承是 public；同理，当 struct 修饰的类作为父类，class 修饰的类作为子类时，默认继承是 private。
   > 参考：[struct 和 class 的区别](https://www.cnblogs.com/ZhenXin0101/p/11451694.html)
+
 </details>
 <details>
   <summary>C 和 C++ 的区别</summary>
