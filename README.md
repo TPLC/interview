@@ -241,9 +241,13 @@
 
 </details>
 <details>
-  <summary>struct 和 class 的区别</summary>
+  <summary>struct 和 class 的区别和联系</summary>
 
-
+  - **默认继承权**：class 默认 private 继承，struct 默认 public 继承。
+  - **成员默认访问权限**：class 的成员默认是 private 权限，struct 默认是 public 权限。
+  - C++ 中 struct 能包含成员函数，有自己的构造函数，可以有析构函数，支持继承、多态，支持private、protected、public关键字。
+  - class 可以继承自struct修饰的类；同时，struct 也可以继承自 class 修饰的类。当 class 修饰的类作为父类，struct 修饰的类作为子类时，默认继承是 private 还是 public 取决于子类而不是父类，这里由于是子类是 struct 修饰的，所以默认继承是 public；同理，当 struct 修饰的类作为父类，class 修饰的类作为子类时，默认继承是 private。
+  > 参考：[struct 和 class 的区别](https://www.cnblogs.com/ZhenXin0101/p/11451694.html)
 </details>
 <details>
   <summary>C 和 C++ 的区别</summary>
@@ -268,7 +272,7 @@
 <details>
   <summary>析构函数一般写成虚函数的原因</summary>
 
-
+  
 </details>
 <details>
   <summary>构造函数为什么一般不定义为虚函数</summary>
