@@ -233,6 +233,13 @@
 <details>
   <summary>const 用法</summary>
 
+  - `const` 修饰变量，说明变量不可以被改变。
+  - `const` 修饰指针，分为指向常量的指针（pointer to const）和常量指针（const pointer）。如 `const int* a;` 是指向常量的指针，`int* const b;` 是常量指针。
+  - `const` 修饰引用，只有指向常量的引用，没有常量引用，因为引用只是别名不是变量，没有常量属性那么一说。如 `int a; const int& b = a;` 是指向常量的引用。
+  - `const` 修饰成员函数，说明该成员函数不能修改成员变量。被修饰的函数称为 `const` 成员函数。
+  - `const` 修饰类对象，则该类称为常对象，该对象只能调用类的 `const` 成员（`cosnt` 成员变量和 `const` 成员函数），没有被 `const` 修饰的对象则可以使用所有的成员，不管是不是 `const` 成员。
+  - 不能同时使用 `static` 和 `const` 修饰类的成员函数，因为在调用非 `static` 成员函数时，实际上会隐式传递一个 `this` 指针给成员函数，而 `cosnt` 成员函数则会隐式调用一个经 `cosnt` 修饰的 `this` 指针以保证他不会改变对象的内容，而由于 `static` 成员函数是属于整个类共享的，他是不需要 `this` 指针作为参数的，所以 `cosnt` 和 `static` 同时修饰一个成员函数会产生冲突。
+  > 参考：[C++ const 关键字小结](https://www.runoob.com/w3cnote/cpp-const-keyword.html)
 
 </details>
 <details>
