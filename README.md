@@ -614,7 +614,7 @@
 <details>
   <summary>内存泄露的定义，如何检测与避免</summary>
 
-  - 内存泄漏指的是在程序里动态申请的内存在使用完后，没有进行释放，导致这部分内存没有被系统回收，久而久之，可能导致系统内存越来越少。
+  - 内存泄漏指的是在程序里动态申请的内存在使用完后，没有进行释放，导致这部分内存没有被系统回收，久而久之，可能导致系统可用内存越来越少。
   - 内存泄漏的可能成因
     - 在一个程序块内没有成对使用 new/delete。
     - 在类的构造函数与析构函数中没有匹配地调用 new/delete。
@@ -627,36 +627,115 @@
     - 在C++中避免内存泄漏的最好方法是尽可能少地在程序级别上进行 new 和 delete 调用。任何需要动态内存的东西都应该隐藏在一个 RAII 对象中，当它超出范围时释放内存。RAII 在构造函数中分配内存并在析构函数中释放内存，这样当变量离开当前范围时，内存就可以被释放。
     - 培养良好的编码习惯，在涉及内存的程序段中，检测内存是否发生泄漏。
   > [面试问题之 C++ 语言：如何避免内存泄漏](https://www.cnblogs.com/yichengming/p/11466636.html)，[C++中避免内存泄露常见的解决方式](https://www.cnblogs.com/mfrbuaa/p/4265483.html)
-  
+
 </details>
 <details>
   <summary>内存泄漏和内存溢出</summary>
 
-
-</details>
-<details>
-  <summary>遇到 coredump 要怎么调试</summary>
-
+  - 内存泄漏指的是在程序里动态申请的内存在使用完后，没有进行释放，导致这部分内存没有被系统回收，久而久之，可能导致系统可用内存越来越少。发生在堆上。
+  - 内存溢出指的是用户的实际的数据长度超过了可用的内存空间大小，导致覆盖了其他正常数据。一般发生在栈上。
+  > 参考：[内存泄漏和内存溢出有啥区别](https://www.zhihu.com/question/40560123)
 
 </details>
 <details>
   <summary>内存检查工具的了解</summary>
 
+  - Windows 下 vs 可用 CRT
+  - LInux 下可用 valgrind
+  > 参考：[C++ 内存泄露检查工具](https://blog.csdn.net/ttomqq/article/details/81937561)，[C/C++ 内存泄漏及检测](https://www.cnblogs.com/skynet/archive/2011/02/20/1959162.html)  
 
 </details>
 <details>
   <summary>模板的用法和适用场景</summary>
 
-
 </details>
 <details>
-  <summary>成员初始化列表的概念，为什么用成员初始化列表会快一些</summary>
+  <summary>为什么用成员初始化列表会快一些</summary>
 
+  - 因为对象的初始化动作发生在进入构造函数本体之前，在构造函数内部进行的都是赋值操作，而不是初始化。假定再构造函数内对成员变量进行赋值，如果是内置类型的话，没有多少影响，但是如果是类对象，那么就会先调用一次构造函数，然后再调用赋值操作符进行赋值操作。如果使用成员初始化列表就可以免去一次赋值操作。
+  > [Effective C++ 条款04-确定对象被使用前已被初始化]()
 
 </details>
 <details>
   <summary>C++ 智能指针</summary>
 
+  - 用户开辟一块内存，使用以后容易忘记释放，会造成内存泄漏，如果释放了内存，但是没有将指针置空，那么指针将变成野指针。为了解决这两个问题，引入智能指针，**以对象管理资源**，获得资源后立刻放入管理对象，管理对象运用析构函数确保资源被释放。
+  - **auto_ptr**：`auto_ptr` 在拷贝和赋值过程中，会直接剥夺原对象对内存的控制权，转交给新对象，然后将原对象置为 `nullptr`，如果后面再次访问原对象就会出错。C++11 已移除 `auto_ptr`。
+  - **unique_ptr**：`unique_ptr` 直接禁用拷贝和赋值，任何调用他们的行为都将在编译期间报错。
+  - **shared_ptr**：`shared_ptr` 既不会直接剥夺原对象对内存的控制权，也允许进行拷贝和赋值，因为它引入了**引用计数**（用指针记录），`shared_ptr` 在内部为资源维护了一个引用计数，用来记录该资源被几个 `shared_ptr` 对象共享。当有一个对象加入管理该资源时，资源的计数加一；在对象销毁时，资源的计数减一，当资源的计数为 0 时，需要释放该资源，当资源的计数不为 0 时，说明还有其他的对象在管理此资源，那么就不能释放该资源。但是 `shared_ptr` 存在由引用计数导致的**循环引用问题**，本来还有线程安全问题，但是 C++ 库针对这一点，将 `shared_ptr` 中的引用计数操作改成原子操作，所以 `shared_ptr` 是线程安全的，而循环引用问题通过引入 `weak_ptr` 解决。
+  - **weak_ptr**：`weak_ptr` 为解决 `shared_ptr` 的循环引用问题而设计，它本身不能直接定义为管理原始指针的对象，只能将 `shared_ptr` 对象赋值给 `weak_ptr`，同时也不能将 `weak_ptr` 对象直接赋值给 `shared_ptr` 类型的对象，最重要的一点是赋值给它不会增加引用计数。举个例子，如下代码中，`ptr_a` 和 `m_ptr_b` 指向同一个资源，`ptr_b` 和 `m_ptr_a` 指向同一个资源，当离开局部作用域后，`ptr_a` 和 `ptr_b` 被析构，两个资源各自的引用计数减一，但要注意的是析构的是 `ptr_a` 和 `ptr_b` ，是智能指针，而不是他们管理的资源，所以`m_ptr_a` 和 `m_ptr_b` 不会被析构，由于此时 `m_ptr_a` 和 `m_ptr_b` 还管理着这两个资源，所以直到离开作用域都不会释放该资源。看图理解。当引入 `weak_ptr` 后，由于 `weak_ptr` 不会增加引用计数，在进行完 `ptr_a->set_ptr(ptr_b);ptr_b->set_ptr(ptr_a);` 操作后，两个资源的引用计数还是一，所以当 `ptr_a` 和 `ptr_b` 析构后，资源的引用计数变为 0，他们管理的资源也就可以被析构了。
+  ```C++
+  // 循环引用问题
+  #include <iostream>
+  #include <memory>
+  using namespace std;
+
+  class CB;
+  class CA
+  {
+  public:
+      void set_ptr(shared_ptr<CB>& ptr) { m_ptr_b = ptr; }
+  private:
+      shared_ptr<CB> m_ptr_b;
+  };
+
+  class CB
+  {
+  public:
+      void set_ptr(shared_ptr<CA>& ptr) { m_ptr_a = ptr; }
+  private:
+      shared_ptr<CA> m_ptr_a;
+  };
+
+  int main() {
+      {
+          shared_ptr<CA> ptr_a(new CA()); 
+          shared_ptr<CB> ptr_b(new CB());
+
+          ptr_a->set_ptr(ptr_b);
+          ptr_b->set_ptr(ptr_a);
+      }
+
+      return 0;
+  }
+  ```
+  ![avatar](./循环引用.png)
+  ```C++
+    // 引入 weak_ptr 解决循环引用问题
+  #include <iostream>
+  #include <memory>
+  using namespace std;
+
+  class CB;
+  class CA
+  {
+  public:
+      void set_ptr(shared_ptr<CB>& ptr) { m_ptr_b = ptr; }
+  private:
+      weak_ptr<CB> m_ptr_b; // 改成 weak_ptr
+  };
+
+  class CB
+  {
+  public:
+      void set_ptr(shared_ptr<CA>& ptr) { m_ptr_a = ptr; }
+  private:
+      weak_ptr<CA> m_ptr_a; // 改成 weak_ptr
+  };
+
+  int main() {
+      {
+          shared_ptr<CA> ptr_a(new CA()); 
+          shared_ptr<CB> ptr_b(new CB());
+
+          ptr_a->set_ptr(ptr_b);
+          ptr_b->set_ptr(ptr_a);
+      }
+
+      return 0;
+  }
+  ```
+  > 参考：[C++智能指针](https://blog.csdn.net/Ferlan/article/details/86513679)，[智能指针（三）：weak_ptr 浅析](https://blog.csdn.net/albertsh/article/details/82286999)
 
 </details>
 <details>
@@ -674,7 +753,7 @@
 <details>
   <summary>C++ 的 STL 介绍</summary>
 
-
+  
 </details>
 <details>
   <summary>STL 源码中的 hash 表的实现</summary>
@@ -915,7 +994,7 @@
 
 </details>
 <details>
-  <summary>一个机器能够使用的端口号上限是多少，为什么，可以改变吗，那如果想要用的端口超过这个限制怎么办</summary>
+  <summary>一个机器能够使用的端口号上限是多���，为什么，可以改变吗，那如果想要用的端口超过这个限制怎么办</summary>
 
 
 </details>
