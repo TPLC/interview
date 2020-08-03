@@ -236,8 +236,20 @@
 
 </details>
 <details>
-  <summary>static 用法</summary>
+  <summary>static 用法</summary>  
 
+  - **为什么要引入 static**：由于函数中定义的变量是局部的，函数结束后变量的内存就释放了，如果下一次重新调用该函数，想要使用上一次调用时函数中的变量值，那么局部变量就不能满足要求了，如果引入全局变量的话，又会破坏破坏此变量的访问范围（假设该变量应该只在该函数内使用），这就需要 `static` 发挥作用了，使用 `static` 关键字，函数结束后不会释放它的内存，因为函数释放的内存在栈上，而 `static` 变量存储在静态存储区，同时，函数外的作用域也不能访问该变量，满足了需求。还有一种情况，需要一个数据对象为整个类而非某个对象服务，同时又力求不破坏类的封装性，即要求此成员隐藏在类的内部，对外不可见时，可将其定义为静态数据。
+  - **静态数据的存储**：静态数据存储在**静态存储区**，静态存储区分为 DATA 段和 BSS 段，DATA 段（全局初始化区）存放初始化的全局变量和静态变量；BSS 段（全局未初始化区）存放未初始化的全局变量和静态变量。**其中 BBS 段在程序执行之前会被系统自动清 0，所以未初始化的全局变量和静态变量在程序执行之前已经为 0**。
+  - `static` 修饰的静态局部变量只执行初始化一次，而且延长了局部变量的生命周期，直到程序运行结束以后才释放。
+  - `static` 修饰全局变量的时候，这个全局变量只能在本文件中访问，不能在其它文件中访问，即便是 extern 外部声明也不可以。
+  - `static` 修饰一个函数，则这个函数的只能在本文件中调用，不能被其他文件调用。
+  - 考虑到数据安全性，当程序想要使用全局变量的时候应该先考虑使用 `static`。
+  - **全局变量和全局静态变量的区别**：全局变量是不显式用 static 修饰的全局变量，全局变量默认是有外部链接性的，作用域是整个工程，在一个文件内定义的全局变量，在另一个文件中，通过 extern 全局变量名的声明，就可以使用全局变量；全局静态变量是显式用 static 修饰的全局变量，作用域是声明此变量所在的文件，其他的文件即使用 extern 声明也不能使用。
+  - 被 `static` 修饰的变量属于整个类公用的变量（内存地址相同），可以通过类名::变量名直接引用，不需要创建实例进行调用。如有一个类 `class A`，类内部有一个 `static` 变量 `a`，可以直接使用 `A::a` 使用 `a`。
+  - 被 `static` 修饰的方法属于整个类公用的方法（内存地址相同），可以通过类名::方法名直接引用，不需要创建实例进行调用。如有一个类 `class A`，类内部有一个 `static` 函数 `func()`，可以直接使用 `A::func()` 使用 `func()`。
+  - 被 static 修饰的变量、被 static 修饰的方法统一属于类的静态资源，是类实例之间共享的，换言之，一处变、处处变。
+  - **类的静态成员函数不能使用类的非静态成员**，因为静态成员函数属于整个类，在类实例化对象之前就已经分配空间了，而类的非静态成员必须在类实例化对象后才有内存空间。
+  > 参考：[C/C++ 中 static 的用法全局变量与局部变量](https://www.runoob.com/w3cnote/cpp-static-usage.html)
 
 </details>
 <details>
@@ -482,8 +494,8 @@
   <summary>C++ 内存管理</summary>
 
   - 代码段：包括只读存储区和文本区，其中只读存储区存储字符串常量，文本区存储程序的机器代码。
-  - 数据段：存储程序中已初始化的全局变量和静态变量。
-  - bss 段：存储未初始化的全局变量和静态变量（局部+全局），以及所有被初始化为0的全局变量和静态变量。
+  - DATA 段（全局初始化区）：存储程序中已初始化的全局变量和静态变量。**DATA 段 + BSS 段 = 静态存储区**。
+  - BSS 段（全局未初始化区）：存储未初始化的全局变量和静态变量（局部+全局），以及所有被初始化为 0 的全局变量和静态变量。**BBS 段在程序执行之前会被系统自动清 0，所以未初始化的全局变量和静态变量在程序执行之前已经为 0**。
   - 堆区：调用 new/malloc 函数时在堆区动态分配内存，同时需要调用 delete/free 来手动释放申请的内存。
   - 映射区：存储动态链接库以及调用 mmap 函数进行的文件映射。
   - 栈区：使用栈空间存储函数的返回地址、参数、局部变量、返回值。
@@ -753,7 +765,16 @@
 <details>
   <summary>C++ 的 STL 介绍</summary>
 
-  
+  - STL 是C++标准库的重要组成部分，不仅是一个可复用的组件库，而且是一个包罗数据结构和算法的软件框架。
+  - **STL 六大组件**
+    -  **容器**（Containers）：各种数据结构，如：`vector`、`list`、`deque`、`set`、`map`。用来存放数据。从实现的角度来看，STL容器是一种 class template。
+    - **算法**（algorithms）：各种常用算法，如：`sort`、`search`、`copy`、`erase`。从实现的角度来看，STL 算法是一种 function template。
+    - **迭代器**（iterators）：容器与算法之间的胶合剂，是所谓的“泛型指针”。共有五种类型，以及其他衍生变化。从实现的角度来看，迭代器是一种将 operator*、operator->、operator++、operator- - 等指针相关操作进行重载的 class template。所有 STL 容器都有自己专属的迭代器，只有容器本身才知道如何遍历自己的元素。原生指针也是一种迭代器。
+    - **仿函数**（functors）：行为类似函数，可作为算法的某种策略。从实现的角度来看，仿函数是一种重载了operator() 的 class 或 class template。一般的函数指针也可视为狭义的仿函数。
+    - **适配器**（adapters）：一种用来修饰容器、仿函数、迭代器接口的东西。例如：STL 提供的 queue 和 stack，虽然看似容器，但其实只能算是一种容器配接器，因为它们的底部完全借助 deque，所有操作都由底层的 deque 供应。改变 functors 接口者，称为 function adapter；改变 container 接口者，称为 container adapter；改变 iterator 接口者，称为 iterator adapter。
+    - **配置器**（allocators）：负责空间配置与管理。从实现的角度来看，配置器是一个实现了动态空间配置、空间管理、空间释放的 class template。
+    > 参考：[STL 简介和常见的面试题](https://blog.csdn.net/dreamispossible/article/details/89442263?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-6.nonecase&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-6.nonecase)
+    
 </details>
 <details>
   <summary>STL 源码中的 hash 表的实现</summary>
@@ -763,7 +784,7 @@
 <details>
   <summary>STL 中 unordered_map 和 map 的区别</summary>
 
-
+  - 
 </details>
 <details>
   <summary>STL 中 vector 的实现</summary>
@@ -775,7 +796,6 @@
 
 
 </details>
-
 
 ## 网络
 <details>
