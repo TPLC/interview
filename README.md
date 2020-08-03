@@ -128,6 +128,16 @@
 
 </details>
 <details>
+  <summary>继承</summary>
+
+  - private 继承
+  - public 继承
+  - protected 继承
+  - 多重继承
+  - 虚继承
+
+</details>
+<details>
   <summary>多态</summary>
 
 
@@ -249,6 +259,21 @@
 <details>
   <summary>堆和栈的区别</summary>
 
+  - **申请方式**：stack 由系统自动分配；heap 需要程序员自己申请，并指明大小。
+  - **申请后系统的响应**：申请栈上的空间时，只要栈的剩余空间大于所申请空间，系统将为程序提供内存，否则将报异常提示栈溢出；申请堆上的空间时，首先应该知道操作系统有一个记录空闲内存地址的链表，当系统收到程序的申请时，会遍历该链表，寻找第一个空间大于所申请空间的堆结点，然后将该结点从空闲结点链表中删除，并将该结点的空间分配给程序，另外，对于大多数系统，会在这块内存空间中的首地址处记录本次分配的大小，这样，代码中的 `delete` 语句才能正确的释放本内存空间。另外，由于找到的堆结点的大小不一定正好等于申请的大小，系统会自动的将多余的那部分重新放入空闲链表中。
+  - **申请大小的限制**：栈是向低地址扩展的数据结构，是一块连续的内存的区域，栈顶的地址和栈的最大容量是系统预先规定好的，在 Windows 下，**栈的大小是 1M**，如果申请的空间超过栈的剩余空间时，将提示 overflow；堆是向高地址扩展的数据结构，是不连续的内存区域，这是由于系统是用链表来存储的空闲内存地址的，自然是不连续的，而链表的遍历方向是由低地址向高地址，堆的大小受限于计算机系统中有效的虚拟内存，32位 Windows 系统中，一个进程空间大小为 4G，其中进程的高位 2G 留给内核，低于 2G 留给用户，所以进程中的**堆的大小小于 2G**，进程的堆获得的空间比较灵活，也比较大。
+  - **申请效率**：栈由系统自动分配，速度较快；但程序员是无法控制的；堆是由new分配的内存，一般速度比较慢，而且容易产生内存碎片。
+  - **堆和栈中的存储内容**：栈中一般存放返回地址，局部变量，函数参数等；存放在堆中的一块数据一般会在头部存放该数据块的大小，堆中的具体内容由程序员决定。
+  > 参考：[堆和栈的区别](https://zhuanlan.zhihu.com/p/78478567)，[进程空间分配和堆栈大小](https://www.cnblogs.com/ladawn/p/8449399.html)
+
+</details>
+<details>
+  <summary>进程的最大线程数</summary>
+
+  - 32位 Windows 下，一个进程虚拟地址空间为 4G（2^32），内核占 2G，留给用户只有 2G，一个线程默认栈的大小是 1M，所以一个进程最大开2048个线程。当然内存不会完全拿来做线程的栈，所以最大线程数实际值要小于2048，大概2000个。
+  - 32位 Linux 下，一个进程虚拟地址空间4G，内核占1G，用户留3G，一个线程默认栈的大小为 8M，所以最多380个左右线程。
+  - 可以通过修改默认栈的方式改变进程的最大线程数。
+  > 参考：[进程空间分配和堆栈大小](https://www.cnblogs.com/ladawn/p/8449399.html)
 
 </details>
 <details>
@@ -264,65 +289,348 @@
 <details>
   <summary>C 和 C++ 的区别</summary>
 
+  - C++  面向对象；C 面向过程。
+  - C++ 具有封装、继承和多态三种特性。
+  - C++ 支持泛型编程，支持模板类、函数模板等。
+  - 还有很多，不一一列举。
+  > 参考：[C++面试宝典导读](https://www.nowcoder.com/tutorial/93/a34ed23d58b84da3a707c70371f59c21)
 
 </details>
 <details>
   <summary>define 和 const 的区别</summary>
 
+  - define 宏在预处理阶段展开；const 常量在编译阶段使用。
+  - define 宏没有类型，在预处理阶段不会做任何类型检查，直接展开；const 常量有具体的类型，在编译阶段会进行类型检查。
+  -  define 宏使用多少次，就展开多少次，在内存中可能会有多个重复数据；const 常量在内存中只有一份数据。
+  - 由于 define 宏是在预处理阶段展开，返回立即数，所以 define 宏存在于代码段；而 const 常量位于数据段。
+  - 由于 define 宏在预处理阶段被替换，所以如果由于这个 define 宏导致编译出错的话，返回的编译信息中不会有 define 宏的名称，而是 define 宏的替换值，如 `1.11`，而根据这个替换值难以定位错误发生的地方；如果使用 const 常量替换 define 宏，那么如果编译发生错误，那么编译信息中将会包含 const 常量的名称，可以轻松定位错误发生的位置。 
+  > 参考：[浅谈define和const的区别](https://blog.csdn.net/ZYZMZM_/article/details/83302084)，[const与define的区别](https://www.cnblogs.com/zhangjiansheng/p/7630160.html)，[Effective C++ 条款02-尽量以 const，enum，inline 替换 #define]()
 
 </details>
 <details>
   <summary>C 语言实现面向对象</summary>
+  
+  ```C++
+  #include <stdio.h>
+  #include <assert.h>
 
+  struct ShapeVtb;
+
+  // Shape 的属性
+  typedef struct {
+      struct ShapeVtb const *vptr;
+
+      int x;
+      int y;
+  } Shape;
+
+  // Shape 的虚函数表
+  struct ShapeVtb {
+      int (*area)(const Shape* const me);
+      void (*draw)(const Shape* const me);
+  };
+
+  // Shape 类的虚函数
+  static int Shape_area_(Shape const * const me) {
+      assert(0); // 类似纯虚函数
+      return 0U; // 避免警告
+  }
+
+  // Shape 类的虚函数
+  static void Shape_draw_(Shape const * const me) {
+      assert(0); // 纯虚函数不能被调用
+  };
+
+  // Shape 的方法，设置 x 和 y，同时也是构造函数
+  void Shape_ctor(Shape * const me, int x, int y) {
+      // Shape 类的虚表
+      static struct ShapeVtb const vtb = { Shape_area_, Shape_draw_ };
+
+      me->vptr = &vtb;
+      me->x = x;
+      me->y = y;
+  }
+
+  // Shape 的方法，增加 x 和 y
+  void Shape_moveBy(Shape * const me, int dx, int dy) {
+      me->x += dx;
+      me->y += dy;
+  }
+
+  // Shape 的方法，获取 x 的值
+  int Shape_getX(const Shape* const me) {
+      return me->x;
+  }
+
+  // Shape 的方法，获取 y 的值
+  int Shape_getY(const Shape* const me) {
+      return me->y;
+  }
+
+  static inline int Shape_area(const Shape* const me) {
+      return (*me->vptr->area)(me);
+  }
+
+  static inline void Shape_draw(const Shape* const me) {
+      (*me->vptr->draw)(me);
+  }
+
+  Shape const *largestShape(Shape const *shapes[], int nShapes)
+  {
+      Shape const *s = (Shape *)0;
+      int max = 0U;
+      int i;
+      for (i = 0U; i < nShapes; ++i)
+      {
+          int area = Shape_area(shapes[i]);// 虚函数调用
+          if (area > max)
+          {
+              max = area;
+              s = shapes[i];
+          }
+      }
+      return s;
+  }
+
+  void drawAllShapes(Shape const *shapes[], int nShapes)
+  {
+      int i;
+      for (i = 0U; i < nShapes; ++i)
+      {
+          Shape_draw(shapes[i]); // 虚函数调用
+      }
+  }
+
+  // Rectangle 的属性
+  typedef struct {
+      Shape super; // 继承 Shape
+
+      // 自己的属性
+      int width;
+      int height;
+  } Rectangle;
+
+  // Rectangle 的虚函数
+  static int Rectangle_area_(const Shape* const me)
+  {
+      const Rectangle* const me_ = (Rectangle const *)me; // 显式的转换
+      return (int)me_->width * (int)me_->height;
+  }
+
+  static void Rectangle_draw_(const Shape* const me)
+  {
+      const Rectangle* const me_ = (Rectangle const *)me; // 显式的转换
+      printf("Rectangle_draw_(x=%d,y=%d,width=%d,height=%d)\n", Shape_getX(me), Shape_getY(me), me_->width, me_->height);
+  }
+
+  // Rectangle 的构造函数
+  void Rectangle_ctor(Rectangle* const me, int x, int y, int width, int height)
+  {
+      static struct ShapeVtb const vtb = { Rectangle_area_, Rectangle_draw_ };
+      Shape_ctor(&me->super, x, y); // 调用基类的构造函数
+      me->super.vptr = &vtb; // 重载 vptr
+
+      me->width = width;
+      me->height = height;
+  }
+
+  int main() {
+      Shape s1, s2;
+
+      Shape_ctor(&s1, 0, 1);
+      Shape_ctor(&s2, -1, 2);
+
+      printf("Shape s1(x=%d, y=%d)\n", Shape_getX(&s1), Shape_getY(&s1));
+      printf("Shape s2(x=%d, y=%d)\n", Shape_getX(&s2), Shape_getY(&s2));
+
+      Shape_moveBy(&s1, 2, -4);
+      Shape_moveBy(&s2, 1, -2);
+
+      printf("Shape s1(x=%d,y=%d)\n", Shape_getX(&s1), Shape_getY(&s1));
+      printf("Shape s2(x=%d,y=%d)\n", Shape_getX(&s2), Shape_getY(&s2));
+
+      Rectangle r1, r2;
+
+      // 实例化对象
+      Rectangle_ctor(&r1, 0, 2, 10, 15);
+      Rectangle_ctor(&r2, -1, 3, 5, 8);
+
+      printf("Rect r1(x=%d,y=%d,width=%d,height=%d)\n", Shape_getX(&r1.super), Shape_getY(&r1.super), r1.width, r1.height);
+      printf("Rect r2(x=%d,y=%d,width=%d,height=%d)\n", Shape_getX(&r2.super), Shape_getY(&r2.super), r2.width, r2.height);
+
+      // 注意，这里有两种方式，一是强转类型，二是直接使用成员地址
+      Shape_moveBy((Shape *)&r1, -2, 3);
+      Shape_moveBy(&r2.super, 2, -1);
+
+      printf("Rect r1(x=%d,y=%d,width=%d,height=%d)\n", Shape_getX(&r1.super), Shape_getY(&r1.super), r1.width, r1.height);
+      printf("Rect r2(x=%d,y=%d,width=%d,height=%d)\n", Shape_getX(&r2.super), Shape_getY(&r2.super), r2.width, r2.height);
+
+      Shape const *shapes[] = { &r2.super, &r1.super };
+      Shape const *s = largestShape(shapes, sizeof(shapes)/sizeof(shapes[0]));
+      
+      printf("largestShape s(x=%d,y=%d)\n", Shape_getX(s), Shape_getY(s));
+
+      drawAllShapes(shapes, sizeof(shapes)/sizeof(shapes[0]));
+
+      return 0;
+  }
+  ```
+  > 参考：[C 语言实现面向对象编程](https://blog.csdn.net/onlyshi/article/details/81672279)
 
 </details>
 <details>
   <summary>C++ 内存管理</summary>
 
+  - 代码段：包括只读存储区和文本区，其中只读存储区存储字符串常量，文本区存储程序的机器代码。
+  - 数据段：存储程序中已初始化的全局变量和静态变量。
+  - bss 段：存储未初始化的全局变量和静态变量（局部+全局），以及所有被初始化为0的全局变量和静态变量。
+  - 堆区：调用 new/malloc 函数时在堆区动态分配内存，同时需要调用 delete/free 来手动释放申请的内存。
+  - 映射区：存储动态链接库以及调用 mmap 函数进行的文件映射。
+  - 栈区：使用栈空间存储函数的返回地址、参数、局部变量、返回值。
+  > 参考：[C++面试宝典导读](https://www.nowcoder.com/tutorial/93/8f140fa03c084299a77459dc4be31c95)
 
 </details>
 <details>
   <summary>析构函数一般写成虚函数的原因</summary>
 
-  
+  - 任何 class 只要带有 virtual 函数都几乎确定也有一个 virtual 析构函数，当一个派生类对象经由一个基类对象执指针被删除，而该基类带着一个 non-virtual 析构函数，通常情况下是该派生类对象的派生类部分没被销毁，而如果是析构函数是虚函数，那么就会调用派生类的析构函数来释放对象内存，那么基类部分和派生类部分都将被释放。如有一个基类 `class A` 和一个派生类 `class B`，他们的析构函数不是虚函数，那么分析 `A* a= new B; delete A;`，这里释放 `a` 指向的内存时，只会释放 `class A` 部分的内存，而 `class B` 的部分还保留在内存中。
+  - 如果一个 class 如果不含有 virtual 函数，通常意味着它不想被用作一个基类，当一个类不想被当作基类的时候，最好不要令其析构函数为一个虚函数。因为如果类中存在虚函数，那么对象中需要存有一个虚函数表指针 `_vptr`，但是本身这个类是不需要作为基类的，也就不需要虚函数表，所以这是浪费了资源，多占用了空间。
+  > 参考：[Effective C++ 条款07-为多态基类声明 virtual 析构函数]()
+
 </details>
 <details>
-  <summary>构造函数为什么一般不定义为虚函数</summary>
+  <summary>构造函数为什么不能定义为虚函数</summary>
 
+  - 因为没有意义啊，构造函数在虚函数表建立之前就要执行。
+  > 参考：[C++中为什么构造函数不能定义为虚函数](https://blog.csdn.net/qq_39885372/article/details/104915425)
 
 </details>
 <details>
   <summary>构造函数或者析构函数中调用虚函数会怎样</summary>
 
+  - 最好不要。派生类在构造过程中会先调用基类的构造函数，如果基类中调用了一个虚函数，那么他会调用基类版本的虚函数，而不是派生类的版本，因为在此时，对象其实是基类对象而不是派生类对象，这样的话，虚函数就没有起到虚函数的作用，因为它在哪个类的构造函数中就调用那个类的虚函数版本。析构函数同理，虚函数在哪个类的析构函数中使用就调用那个类的虚函数版本。
+  > [Effective C++ 条款09-绝不在构造和析构过程中调用 virtual 函数]()
 
 </details>
 <details>
   <summary>深拷贝和浅拷贝的区别</summary>
 
+  - 在对象拷贝过程中，如果没有自定义一个拷贝构造函数，系统会提供一个默认拷贝构造函数，默认拷贝构造函数对于基本类型的成员变量，**按字节赋值**，对于类类型的成员变量，调用其相应的拷贝构造函数，这种叫做浅拷贝，对于指针成员变量，如果按字节赋值的话，那么**两个对象中的这个指针成员变量将指向同一块内存**，如果其中一个对象进行析构以后，且析构函数中释放了该指针指向的内存，那么此时还未进行析构的那个对象的指针成员变量将指向一块存有未知数值的内存，而且在这个对象进行析构的时候，这块内存又被释放一次，结果会导致程序奔溃。
+  - 为解决这个问题，需要使用深拷贝，我们需要自定义一个拷贝构造函数，让指针成员变量指向新开辟的内存空间。
+  > 参考：[C++浅拷贝和深拷贝的区别](https://www.cnblogs.com/wjcoding/p/10955017.html)
 
 </details>
 <details>
   <summary>对象复用的了解，零拷贝的了解</summary>
 
+  - 
 
 </details>
 <details>
-  <summary>介绍C++所有的构造函数</summary>
+  <summary>介绍 C++ 所有的构造函数</summary>
 
+  - **无用的默认构造函数**：如果没有显式地定义默认构造函数，编译器会自动生成一个默认构造函数，生成的默认构造函数什么也不做，只是为了保证程序能够正确运行而已。
+  - **有用的默认构造函数**：如果没有显式地定义默认构造函数，编译器会自动生成一个默认构造函数，同时，如果该类中有一个成员类对象，那么生成的默认构造函数并不是什么都不做，它会调用成员类对象的构造函数。
+  - **有用的默认构造函数**：如果没有显式地定义默认构造函数，编译器会自动生成一个默认构造函数，同时，如果该类中包含有一个虚函数，那么虚函数表 `_vbtl` 和 虚函数表指针 `_vptr` 会在默认构造函数中合成出来。
+  - **无参构造函数**：用户自定义的不带参数的构造函数，可以在初始化列表中对成员变量进行初始化，同时也会隐式进行成员类的构造以及虚函数表和虚函数表指针的合成。
+  - **带参构造函数**：用户自定义的带参数的构造函数，可以在初始化列表中对成员变量进行初始化，同时也会隐式进行成员类的构造以及虚函数表和虚函数表指针的合成。如果是单参数的构造函数，可以提供参数类型到类类型的隐式转换，如果不想要隐式转换，可以在该构造函数前面加上 `explicit`，说明该构造函数必须显式调用。
+  - **默认拷贝构造函数**：如果没有显式定义一个拷贝构造函数，那么编译器会自动生成一个拷贝构造函数，该拷贝函数是浅拷贝的，对于每个基本类型的成员变量进行按字节赋值。
+  - **自定义拷贝构造函数**：用户可自定义拷贝构造函数，对普通类型变量可以进行值拷贝，针对指针变量，可以新开辟一块空间，将源对象的指针指向的值放入该块内存，并让指针指向这块内存，这样就实现了深拷贝，源对象和拷贝对象之间不会互相影响。
+  > [C++默认构造函数——深入理解](https://blog.csdn.net/hankai1024/article/details/7947989)
 
 </details>
 <details>
   <summary>什么情况下会调用拷贝构造函数</summary>
 
+  - 当函数的参数为类的对象的时候。
+  - 函数的返回值是类的对象的时候。
+  - 对象需要通过另一个对象初始化的时候。
+  > 参考：[C++ 拷贝函数详解](https://www.cnblogs.com/alantu2018/p/8459250.html)
 
 </details>
 <details>
   <summary>结构体内存对齐方式和为什么要进行内存对齐</summary>
 
+  - 给定结构体里每个变量一个对齐标准（根据规则，可能是宏指定的也可能是变量的大小），该变量的地址必须是该标准的整数倍。
+  - **数据成员对齐规则**：结构体的数据成员，第一个数据成员放在 offset 为 0 的地方（offset 位置由结构体的整体对齐决定），以后每个数据成员的对齐按照 `#pragma pack` 指定的数值和这个数据成员自身长度中，比较小的那个进行。
+  - **结构体的整体对齐规则**：在数据成员完成各自对齐之后，结构体本身也要进行对齐，对齐将按照 `#pragma pack` 指定的数值和结构最大数据成员长度中，比较小的那个进行。
+  - **结构体作为成员**：如果一个结构里有某些结构体成员，则结构体成员要从其内部最大元素大小的整数倍地址开始存储。
+  - **为什么要内存对齐**：因为每次 CPU 从内存中取数据，都是取总线宽度大小的数据，而起始地址得是总线宽度的整数倍（不确定），内存对齐有助于提升读取效率。（不懂）
+  ```C++
+  #include <iostream>
+  using namespace std;
+
+  #pragma pack (1) // 指定按1对齐
+  struct struct01 {
+      int i; // 长度4 > 1，按 1 对齐
+      short us; // 长度 2 > 1，按 1 对齐
+      char b; // 长度1 = 1，按 1 对齐
+  };
+  #pragma pack ()
+
+  #pragma pack (2) // 指定按2对齐
+  struct struct02 {
+      int i; // 长度4 > 2，按 2 对齐
+      short us; // 长度2 = 2，按 2 对齐
+      char b; // 长度1 < 2，按 1 对齐
+      char d; // 长度1 < 2，按 1 对齐
+  };
+  #pragma pack ()
+
+  // 默认对齐
+  struct struct03
+  {
+      int i; // 长度4 < 8，按 4 对齐
+      short us; // 长度2 < 8，按 2 对齐
+      char b; // 长度1 < 8，按 1 对齐
+  } ;
+
+  int main(){
+      struct01 s1;
+      struct02 s2;
+      struct03 s3;
+
+      cout << "sizeof(struct01): " << sizeof(struct01) << endl; // 输出 “sizeof(struct01): 7”
+      cout << "sizeof(struct02): " << sizeof(struct02) << endl; // 输出 “sizeof(struct02): 8”
+      cout << "sizeof(struct03): " << sizeof(struct03) << endl; // 输出 “sizeof(struct03): 8”
+
+      cout << "s1 i address: " << reinterpret_cast<intptr_t>(&(s1.i)) << endl; // 输出 “s1 i address: 6422041”
+      cout << "s1 us address: " << reinterpret_cast<intptr_t>(&(s1.us)) << endl; // 输出 “s1 us address: 6422045”
+      cout << "s1 b address: " << reinterpret_cast<intptr_t>(&(s1.b)) << endl; // 输出 “s1 b address: 6422047”
+      cout << "s2 i address: " << reinterpret_cast<intptr_t>(&(s2.i)) << endl; // 输出 “s2 i address: 6422032”
+      cout << "s2 us address: " << reinterpret_cast<intptr_t>(&(s2.us)) << endl; // 输出 “s2 us address: 6422036”
+      cout << "s2 b address: " << reinterpret_cast<intptr_t>(&(s2.b)) << endl; // 输出 “s2 b address: 6422038”
+      cout << "s2 d address: " << reinterpret_cast<intptr_t>(&(s2.d)) << endl; // 输出 “s2 d address: 6422039”
+      cout << "s3 i address: " << reinterpret_cast<intptr_t>(&(s3.i)) << endl; // 输出 “s3 i address: 6422024”
+      cout << "s3 us address: " << reinterpret_cast<intptr_t>(&(s3.us)) << endl; // 输出 “s3 us address: 6422028”
+      cout << "s3 b address: " << reinterpret_cast<intptr_t>(&(s3.b)) << endl; // 输出 “s3 b address: 6422030”
+
+      return 0;
+  }
+  ```
+  > 参考：[C++ 面试题之结构体内存对齐计算问题总结大全](https://www.jb51.net/article/120329.htm)
 
 </details>
 <details>
   <summary>内存泄露的定义，如何检测与避免</summary>
+
+  - 内存泄漏指的是在程序里动态申请的内存在使用完后，没有进行释放，导致这部分内存没有被系统回收，久而久之，可能导致系统内存越来越少。
+  - 内存泄漏的可能成因
+    - 在一个程序块内没有成对使用 new/delete。
+    - 在类的构造函数与析构函数中没有匹配地调用 new/delete。
+    - 在释放对象数组时，使用的是 delete，而没有使用 delete []。
+    - 基类的析构函数为非虚函数，使用一个基类指针的 delete 删除一个派生类对象。
+  - 检测：利用内存检查工具。
+  - 如何避免内存泄漏
+    - 不要手动管理内存，可以尝试在适用的情况下使用智能指针。
+    - 使用 string 而不是 char*，string 类在内部处理所有内存管理。
+    - 在C++中避免内存泄漏的最好方法是尽可能少地在程序级别上进行 new 和 delete 调用。任何需要动态内存的东西都应该隐藏在一个 RAII 对象中，当它超出范围时释放内存。RAII 在构造函数中分配内存并在析构函数中释放内存，这样当变量离开当前范围时，内存就可以被释放。
+    - 培养良好的编码习惯，在涉及内存的程序段中，检测内存是否发生泄漏。
+  > [面试问题之 C++ 语言：如何避免内存泄漏](https://www.cnblogs.com/yichengming/p/11466636.html)，[C++中避免内存泄露常见的解决方式](https://www.cnblogs.com/mfrbuaa/p/4265483.html)
+  
+</details>
+<details>
+  <summary>内存泄漏和内存溢出</summary>
 
 
 </details>
@@ -343,6 +651,11 @@
 </details>
 <details>
   <summary>成员初始化列表的概念，为什么用成员初始化列表会快一些</summary>
+
+
+</details>
+<details>
+  <summary>C++ 智能指针</summary>
 
 
 </details>
@@ -383,6 +696,7 @@
 
 
 </details>
+
 
 ## 网络
 <details>
@@ -586,7 +900,7 @@
 
 </details>
 <details>
-  <summary>http / 1.0 和http / 1.1 的区别</summary>
+  <summary>http/1.0 和 http/1.1 的区别</summary>
 
 
 </details>
@@ -711,7 +1025,7 @@
   - **互斥锁**：在访问共享资源后临界区域前，对互斥锁进行加锁；在访问完成后释放互斥锁导上的锁。在访问完成后释放互斥锁导上的锁；对互斥锁进行加锁后，任何其他试图再次对互斥锁加锁的线程将会被阻塞睡眠，直到锁被释放后会被唤醒。一般适用于排他性的场景，如往共享内存中写数据。
   - **读写锁**：如果有其他线程读数据，则允许其他线程进行读操作，但不允许写操作；如果有其它线程写数据，则其它线程都不允许读、写操作。读写锁适用于读比写多的场景。
   - **自旋锁**：自旋锁与互斥锁功能一样，保证临界区只有一个线程或进程，唯一一点不同的就是互斥量阻塞后睡眠让出 CPU，而自旋锁阻塞后不会让出 CPU，会一直忙等待，直到得到锁。自旋锁适用于锁的持有时间较短的场景。
-  - **乐观锁**：每次使用数据的时候都不会加锁，只有在提交的时候会检查是否违反数据完整性。适用于并发竞争不激烈的场景。
+  - **乐观锁**：每次使用数据���时候都不会加锁，只有在提交的时候会检查是否违反数据完整性。适用于并发竞争不激烈的场景。
   - **悲观锁**：每次使用数据的时候都会加锁。适用于并发竞争激烈的场景。
   - 不确定乐观锁和悲观锁是否可以与其他三种锁并列。
   > 参考：[多线程的同步与互斥](https://blog.csdn.net/daaikuaichuan/article/details/82950711)，[各种锁以及使用场景](https://blog.csdn.net/lyl194458/article/details/90641870)
@@ -851,10 +1165,6 @@
 
 </details>
 <details>
-  <summary>一个进程可以创建多少线程，和什么有关</summary>
-  
-</details>
-<details>
   <summary>一个程序从开始运行到结束的完整过程（四个过程）</summary>
   
 </details>
@@ -917,19 +1227,19 @@
   
 </details>
 <details>
-  <summary>IO 复用的三种方法（select，poll，epoll）深入理解，包括三者区别，内部原理实现</summary>
+  <summary>I/O 复用的三种方法（select，poll，epoll）深入理解，包括三者区别，内部原理实现</summary>
   
 </details>
 <details>
-  <summary>Epoll的ET模式和LT模式（ET的非阻塞）</summary>
+  <summary>Epoll 的 ET 模式和 LT 模式（ET的非阻塞）</summary>
   
 </details>
 <details>
-  <summary>查询进程占用CPU的命令（注意要了解到used，buf，***代表意义）</summary>
+  <summary>查询进程占用CPU的命令（注意要了解到 used，buf，***代表意义）</summary>
   
 </details>
 <details>
-  <summary>linux的其他常见命令（kill，find，cp等等）</summary>
+  <summary>linux 的其他常见命令（kill，find，cp等等）</summary>
   
 </details>
 <details>
