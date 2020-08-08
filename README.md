@@ -847,22 +847,33 @@
   - 2**：成功，操作被成功接收并处理。
   - 3**：重定向，需要进一步的操作以完成请求。
   - 4**：客户端错误，请求包含语法错误或无法完成请求。
-  - 5**：服务器错误，服务器在处理请求的过���中发生了错误。
+  - 5**：服务器错误，服务器在处理请求的过����中发生了错误。
   > 参考：[HTTP 状态码](https://www.runoob.com/http/http-status-codes.html)
 
 </details>
 <details>
   <summary>socket 网络编程（自问）</summary>
   
-  - `SOCKET PASCAL FAR socket(int af, int type, int protocol)`：`socket` 函数用于创建套接字，参数 `af` 指定同学发生的区域：`AF_UNIX`，`AX_INET`，`AF_INET6`，`AF_UNIX` 为 UNIX 本地通信，`AX_INET` 是使用 IPV4 通信，`AF_INET6` 是使用 IPV6 通信；参数 `type`  描述要建立的套接字类型：`SOCK_STREAM`，`SOCK_DGRAM`，`SOCK_RAW`，`SOCK_STREAM` 是 流式套接字，`SOCK_DGRAM` 是 数据报式套接字，`SOCK_RAW` 是原始式套接字；参数 `protocol` 说明该套接字使用的特定协议，选择 TCP 或是 UDP。
-  - `int PASCAL FAR bind(SOCKET s, const struct sockaddr FAR * name, int namelen)`：`bind` 函数将套接字地址（包括本地主机地址和本地端口地址）与所创建的套接字绑定起来。
-  - `int PASCAL FAR connect(SOCKET s, const struct sockaddr FAR * name, int namelen)`：`connect` 函数用于建立连接。
-  - `SOCKET PASCAL FAR accept(SOCKET s, struct sockaddr FAR* addr, int FAR* addrlen)`：`accept` 函数用于使服务器等待来自某客户进程的实际连接。
-  - `int PASCAL FAR listen(SOCKET s, int backlog)`：`listen` 函数用于监听客户发来的连接请求。
-  - `int PASCAL FAR send(SOCKET s, const char FAR *buf, int len, int flags)`：`send` 函数用于发送数据。
-  - `int PASCAL FAR recv(SOCKET s, char FAR *buf, int len, int flags)`：`recv` 函数用于接收数据。
-  - `int PASCAL FAR select(int nfds, fd_set FAR * readfds, fd_set FAR * writefds, fd_set FAR * exceptfds, const struct timeval FAR * timeout)`：`select` 函数用于检测一个或多个套接字的状态，对每一个套接字来说，这个调用可以请求读、写或错误状态方面的信息。请求给定状态的套接字集合由一个 `fd_set` 结构指示，在返回时，此结构被更新，以反映那些满足特定条件的套接字的子集，同时， `select` 函数调用返回满足条件的套接字的数目。
-  - 使用 `select` 函数可以写出**非阻塞**的程序，可以进行 **IO 多路复用**。当程序中使用 `connect`，`accept`，`recv`这几个函数时，程序就是阻塞程序，执行到这些函数的时候必须等待某个事件发生，如果没有发生，进程或者线程就被阻塞，而且如果有多个套接字都要传输的时候，一个套接字在发送和接收过程中一直占用着设定的端口，此时其他套接字无法在该端口传输数据，其阻塞时间又会浪费实际可用的时间，使得效率很低。所以可以使用 `select` 函数，`select` 函数可以检测套接字的状态，只要轮询 `select` 函数，查看当前是否有可以处理的套接字即可。
+  - `socket`：`socket` 函数用于创建套接字。
+    - 函数原型：`SOCKET PASCAL FAR socket(int af, int type, int protocol)`。
+    - `af`：指定通信发生的区域，`AF_UNIX`，`AX_INET`，`AF_INET6`，`AF_UNIX` 为 UNIX 本地通信，`AX_INET` 是使用 IPV4 通信，`AF_INET6` 是使用 IPV6 通信。
+    - `type`：  描述要建立的套接字类型：`SOCK_STREAM`，`SOCK_DGRAM`，`SOCK_RAW`，`SOCK_STREAM` 是 流式套接字，`SOCK_DGRAM` 是 数据报式套接字，`SOCK_RAW` 是原始式套接字。
+    - `protocol`：说明该套接字使用的特定协议，选择 TCP 或是 UDP。
+  - `bind`：将套接字地址（包括本地主机地址和本地端口地址）与所创建的套接字绑定起来。 
+    - 函数原型：`int PASCAL FAR bind(SOCKET s, const struct sockaddr FAR * name, int namelen)`。
+  - `connect`：用于建立连接。
+    - 函数原型：`int PASCAL FAR connect(SOCKET s, const struct sockaddr FAR * name, int namelen)`。
+  - `accept`： 用于使服务器等待来自某客户进程的实际连接。
+    - 函数原型：`SOCKET PASCAL FAR accept(SOCKET s, struct sockaddr FAR* addr, int FAR* addrlen)`。
+  - `listen`：用于监听客户发来的连接请求。
+    - 函数原型：`int PASCAL FAR listen(SOCKET s, int backlog)`。
+  - `send` 函数用于发送数据。
+    - 函数原型：`int PASCAL FAR send(SOCKET s, const char FAR *buf, int len, int flags)`。
+  - `recv`：用于接收数据。
+    - 函数原型：`int PASCAL FAR recv(SOCKET s, char FAR *buf, int len, int flags)`。
+  - `select` 函数用于检测一个或多个套接字的状态，对每一个套接字来说，这个调用可以请求读、写或错误状态方面的信息。请求给定状态的套接字集合由一个 `fd_set` 结构指示，在返回时，此结构被更新，以反映那些满足特定条件的套接字的子集，同时， `select` 函数调用返回满足条件的套接字的数目。
+    - 函数原型：`int PASCAL FAR select(int nfds, fd_set FAR * readfds, fd_set FAR * writefds, fd_set FAR * exceptfds, const struct timeval FAR * timeout)`。
+    - 使用 `select` 函数可以写出**非阻塞**的程序，可以进行 **IO 多路复用**。当程序中使用 `connect`，`accept`，`recv`这几个函数时，程序就是阻塞程序，执行到这些函数的时候必须等待某个事件发生，如果没有发生，进程或者线程就被阻塞，而且如果有多个套接字都要传输的时候，一个套接字在发送和接收过程中一直占用着设定的端口，此时其他套接字无法在该端口传输数据，其阻塞时间又会浪费实际可用的时间，使得效率很低。所以可以使用 `select` 函数，`select` 函数可以检测套接字的状态，只要轮询 `select` 函数，查看当前是否有可以处理的套接字即可。
   - 还差两张 socket 通信原理的图没画，一个 TCP 的，一个 UDP 的。
   > 参考：[socket 技术详解](https://www.cnblogs.com/fengff/p/10984251.html)，[socket 通信中 select 函数的使用和解释](https://www.cnblogs.com/gangzilife/p/9766292.html)，[IO 多路复用](https://www.jianshu.com/p/dd5b6893bef7)
   
@@ -909,6 +920,9 @@
 </details>
 <details>
   <summary>socket 中的 accept() 发生在 TCP 三次握手的哪个阶段</summary>
+
+  - `accept()` 发生在三次握手之后。
+  > 参考：[TCP 服务端 accept 发生在三次握手的哪一个阶段](https://www.cnblogs.com/taoshihan/p/11217150.html)
 
 </details>
 <details>
@@ -968,7 +982,33 @@
 <details>
   <summary>从浏览器中输入一个 url 到回显的全过程</summary>
 
-  
+  - **准备：DHCP、UDP、IP和以太网**
+    - 用户设备上的操作系统生成一个 DHCP 请求报文，将报文放入具有目的端口 67（DHCP 服务器）和源端口 68（DHCP客户）的 UDP 报文段，报文段放置在一个具有广播 IP 目的地地址（255: 255: 255: 255）和源 IP地址 0.0.0.0 的 IP 数据报中。
+    - 包含 DHCP 请求报文的 IP 数据报则北放置在以太网帧中，该以太网帧具有目的 MAC 地址 FF: FF: FF: FF，使该帧广播到与交换机连接的所有设备。
+    - 路由器接收到广播以太网帧，该帧包含 DHCP 请求，一层层分解，抽取出 DHCP 报文。
+    - 运行在路由器的 DHCP 服务器接收到 DHCP 报文后，DHCP 生成一个 DHCP ACK 报文，其中包含分配给用户设备的 IP 地址、默认网关路由器的 IP 地址、DNS 服务器的 IP 地址、子网块。该报文放入到一个 UDP 报文段中，UDP 报文段放入到一个 IP 数据报中，IP' 数据报再放入到一个以太网帧中，目的 MAC 地址为用户设备的 MAC 地址。
+    - 包含 DHCP ACK 的以太网帧由路由器发送给交换机，因为交换机是自学习的，之前收到过用户设备发送来的以太网帧，所以交换机知道如何将该以太网帧发送给用户设备。
+    - 用户收到 DHCP ACK 的以太网帧，从中抽取出 DHCP ACK 报文，获得分配给它的 IP 地址、 DNS 服务器的 IP 地址、默认网关路由器的 IP 地址、子网块。
+  - **准备：DNS 和 ARP**
+    - 用户设备的操作系统生成一个 DNS 查询报文，将 url 放入到 DNS 报文的问题段中，DNS 报文放置在一个目的端口为 53 的 UDP 报文段中，该 UDP 报文段放入到 IP 目的地址为 DNS 服务器地址的 IP 数据报中。
+    - 用户设备将包含 DNS 请求报文的数据报放入到一个以太网帧中，该帧将发送到默认网关路由器，虽然用户设备已经知道了网关路由器的 IP 地址，但是不知道网关路由器的 MAC 地址，为了获得网关路由器的 MAC 地址，需要使用 ARP 协议。
+    - 用户设备生成一个目的地址为默认网关 IP 地址的 ARP 查询报文，该报文放入到一个具有广播吗目的地址（FF: FF: FF: FF）的以太网帧中，并向交换价发送该以太网帧，交换机将该帧交付给所有连接的设备，包括网关路由器。
+    - 网关路由器接收到包含该 ARP 报文的以太网帧，发现 ARP 报文中的目标 IP 地址与其接收到该帧的接口的 IP 地址一致，他将 ARP 回答报文放在一个以太网帧中，其目的 MAC 地址为用户设备的 MAC 地址，并向交换机发送给帧，再由交换机交付给用户设备。
+    - 用户设备接收到包含 ARP 报文的帧，并从 ARP 报文中抽取网关路由器的 MAC 地址。
+    - 用户设备现在将具有 IP 目的地址为 DNS 服务器的 IP 数据报放入到目的 MAC 地址为网关路由器的以太网帧中。用户向交换机发送该帧，交换机将该帧交付给网关路由器。
+  - **准备：域内路由选择到 DNS 服务器**
+    - 网关路由器接收到该帧后抽取 IP 数据报，路由器查找该数据报目的地址，并根据其转发表决定该数据报应发送到哪个路由器，下一个路由器又根据它的转发表决定应该转发到哪个路由器，如此进行下去，最终到达 DNS 服务器。
+    - 包含 DNS 查询报文的 IP 数据报到达了 DNS 服务器，DNS 服务器抽取出 DNS 报文，在它的 DNS 数据库中查找 url，找到对应的 IP 地址的 DNS 源记录（假设它当前缓存在该 DNS 服务器中）。然后 DNS 服务器返回一个包含 url 对应的主机的 IP 地址的 DNS 回答报文，将该报文放入 UDP 报文段中，该报文段放入目标 IP 地址为用户设备的 IP 数据报，将该数据包发送给用户设备。
+    - 用户设备从 DNS 回答报文中抽取到 url 对应的 IP 地址。
+  - **Web 客户-服务器交互：TCP 和 HTTP**
+    - 用户设备生成一个套接字用于发送 HTTP GET 报文，首先，用户设备的 TCP 需要与目标主机中的 TCP 执行三次握手以建立 TCP 连接，因此用户设备首先生成一个目的端口为 80 的 TCP SYN 报文段，将该 TCP 报文段放置在目的 IP 地址为目的主机的 IP 数据报中，将该数据报放置在目的 MAC 地址为网关路由器的帧中，并向交换机发送该帧。
+    - 在路由器之家转发着该以太网帧，直到到达目的主机。
+    - 以太网帧到达目的主机后，从帧中抽取出 TCP SYN 报文并分解到与端口 80 相联系的欢迎套接字，对于用户设备和目的主机之间的 TCP 连接生成一个连接套接字。产生一个 TCP SYNACK 报文段，将其放目的 IP 地址为用户设备的 IP 数据报中，最后放入链路层帧中并发送。
+    - 包含 TCP SYNACK 报文段的数据报最终到达用户设备，收取出 TCP SYNACK 报文段并分解到之前用户设备生成的 TCP 套接字，从而进入连接状态。
+    - 用户设备的浏览器生成包含要获取的 url 的 HTTP GET 报文，HTTP GET 报文则写入套接字，其中 GET 报文成为一个 TCP 报文段的载荷，该 TCP 报文段放入一个数据报中，并交付到目的主机。
+    - 在目的主机的 HTTP 服务器从 TCP 套接字读取 HTTP GET 报文，生成一个 HTTP 响应报文，将请求的 Web 页内容放入到 HTTP 响应体中，并将该报文发送进 TCP 套接字中。
+    - 包含 HTTP 回答报文的数据报通过转发最终到达用户设备，用户设备的 Web 浏览器程序从套接字读取 HTTP 相应，从 HTTP 响应中抽取 Web 网页的 html，最终显示出网页。
+  > 参考：[计算机网络 5.7-回顾：Web 页面请求的历程]()
 </details>
 <details>
   <summary>对路由协议的了解与介绍。内部网关协议 RIP、OSPF，和外部网关协议 BGP、EGP</summary>
