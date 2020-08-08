@@ -129,12 +129,16 @@
 </details>
 <details>
   <summary>继承</summary>
-
-  - private 继承
-  - public 继承
+  
+  - **public 继承**
+    - **成员访问方式变化**：基类 public 成员 $\Rightarrow$ 派生类 public 成员；基类 protected 成员 $\Rightarrow$ 派生类 protected 成员；基类 private 成员 $\Rightarrow$ 派生类中不可见。
+  - **private 继承**
+    - **成员访问方式变化**：基类 public 成员 $\Rightarrow$ 派生类 private 成员；基类 protected 成员 $\Rightarrow$ 派生类 protected 成员；基类 private 成员 $\Rightarrow$ 派生类中不可见。
   - protected 继承
+    - **成员访问方式变化**：基类 public 成员 $\Rightarrow$ 派生类 protected 成员；基类 protected 成员 $\Rightarrow$ 派生类 protected 成员；基类 private 成员 $\Rightarrow$ 派生类中不可见。
   - 多重继承
   - 虚继承
+  > 参考：[]()
 
 </details>
 <details>
