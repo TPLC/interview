@@ -775,40 +775,6 @@
   > 参考：[C++ 中四种 cast 类型强制转换方式](https://blog.csdn.net/epluguo/article/details/12251759)，[关于 dynamic_cast、static_cast 转换做安全检查的不同](https://blog.csdn.net/znzxc/article/details/81177792)
 
 </details>
-<details>
-  <summary>C++ 的 STL 介绍</summary>
-
-  - STL 是C++标准库的重要组成部分，不仅是一个可复用的组件库，而且是一个包罗数据结构和算法的软件框架。
-  - **STL 六大组件**
-    -  **容器**（Containers）：各种数据结构，如：`vector`、`list`、`deque`、`set`、`map`。用来存放数据。从实现的角度来看，STL容器是一种 class template。
-    - **算法**（algorithms）：各种常用算法，如：`sort`、`search`、`copy`、`erase`。从实现的角度来看，STL 算法是一种 function template。
-    - **迭代器**（iterators）：容器与算法之间的胶合剂，是所谓的“泛型指针”。共有五种类型，以及其他衍生变化。从实现的角度来看，迭代器是一种将 operator*、operator->、operator++、operator- - 等指针相关操作进行重载的 class template。所有 STL 容器都有自己专属的迭代器，只有容器本身才知道如何遍历自己的元素。原生指针也是一种迭代器。
-    - **仿函数**（functors）：行为类似函数，可作为算法的某种策略。从实现的角度来看，仿函数是一种重载了operator() 的 class 或 class template。一般的函数指针也可视为狭义的仿函数。
-    - **适配器**（adapters）：一种用来修饰容器、仿函数、迭代器接口的东西。例如：STL 提供的 queue 和 stack，虽然看似容器，但其实只能算是一种容器配接器，因为它们的底部完全借助 deque，所有操作都由底层的 deque 供应。改变 functors 接口者，称为 function adapter；改变 container 接口者，称为 container adapter；改变 iterator 接口者，称为 iterator adapter。
-    - **配置器**（allocators）：负责空间配置与管理。从实现的角度来看，配置器是一个实现了动态空间配置、空间管理、空间释放的 class template。
-    > 参考：[STL 简介和常见的面试题](https://blog.csdn.net/dreamispossible/article/details/89442263?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-6.nonecase&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-6.nonecase)
-    
-</details>
-<details>
-  <summary>STL 源码中的 hash 表的实现</summary>
-
-
-</details>
-<details>
-  <summary>STL 中 unordered_map 和 map 的区别</summary>
-
-  - 
-</details>
-<details>
-  <summary>STL 中 vector 的实现</summary>
-
-
-</details>
-<details>
-  <summary>vector 使用的注意点及其原因，频繁对 vector 调用 push_back() 对性能的影响和原因</summary>
-
-
-</details>
 
 ## 网络
 <details>
@@ -1354,8 +1320,8 @@
   - **先进先出页面置换算法**：由操作系统维护一个所有当前在内存中的页面的链表 ，最新进人的页面放在表尾，最早进入的页面放在表头。当发生缺页中断时，淘汰表头的页面井把新调人的页面加到表尾。
   - **第二次机会页面置换算法**：检查最老页面的 R（读） 位，如果 R 位是0，这个页面既老又没用，可以立刻置换掉；如果是1，就将 R 位清零，并把这个页面放到链表尾端，然后继续搜索，加入 R 位判断是为了避免将经常使用的页面替换掉。
   - **时钟页面置换算法**：把所有的页面保存在一个类似钟面的环形链表中，当发生缺页中断时 ，算法首先检查表针指向的页面，如果它的 R 位是0，就淘汰该页面 ， 井把新的页面插入这个位置，然后把表针前移一个位置；如果 R 位是1，就将 R 位清零并把表针前移一个位置。重复这个过程直到找到了 一个 R 位为0的页面为止。
-  - **最近最少使用页面置换算法**：这个策略也称为**LRU**，其思路是在缺页中断发生时，置换未使用时间最长的页面。该算法成本较高，可使用硬件实现，也可使用软件进行模拟，一种方案是**NFU 算法**，该算法将每个页面与一个软件计数器相关联，计数器的初值为0。每次时钟中断时，由操作系统扫描内存中所有的页面，将每个页面的 R 位（它的值是0或1）加到它的计数器上 。 这个计数器大体上跟踪了各个页面被访问的频繁程度 。 发生缺页中断时，则置换计数器值最小的页面。该算法的缺点是从不忘记任何事情，比如，在一个多次（扫描 ） 编译器中，在第一次扫描中被频繁使用的页面在程序进入第二次扫描时，其计数器的值可能仍然很高。为了改进这个缺点，提出**老化算法！！**，在 NFU 算法的基础上进行修改，首先，在 R 位被加进之前先将计数器右移一位，其次，将 R 位加到计数器最左端的位而不是最右端的位。
-  - **工作集页面置换算法**：进程的工作集可以被称为过去 t 秒实际运行时间中它所访问过的页面的集合，基于工作集的页面置换算法的基本思路就是找出一个不在工作集的页面并淘汰它。每个时钟滴答中，有一个定期的时钟中断会用软件方法来清除 R 位。在处理每个表项时，检查 R 位，如果**R = 1**，把当前实际时间写进页表项的“上次使用时间”域，以表示缺页中断发生时该页面正在被使用，即它在工作集中，不应该被删除；如果**R = 0且生存时间大于 t**，那么这个页面就不再在工作集中，用新的页面替换它；如果**R = 0且生存时间小于等于 t**，则该页面仍然在工作集中，但将其作为候选者，当扫描完整个页表后，还是没有发现R = 0且生存时间大于t 的表项时，就从候选者中挑出生存时间最长的进行替换。
+  - **最近最少使用页面置换算法**：这个策略也称为 **LRU**，其思路是在缺页中断发生时，**置换未使用时间最长的页面**。该算法成本较高，可使用硬件实现，也可使用软件进行模拟，一种方案是 **NFU 算法**，该算法将每个页面与一个软件计数器相关联，计数器的初值为0。每次时钟中断时，由操作系统扫描内存中所有的页面，将每个页面的 R 位（它的值是0或1）加到它的计数器上 。 这个计数器大体上跟踪了各个页面被访问的频繁程度 。 发生缺页中断时，则置换计数器值最小的页面。该算法的缺点是从不忘记任何事情，比如，在一个多次（扫描 ） 编译器中，在第一次扫描中被频繁使用的页面在程序进入第二次扫描时，其计数器的值可能仍然很高。为了改进这个缺点，提出**老化算法**，在 NFU 算法的基础上进行修改，首先，在 R 位被加进之前先将计数器右移一位，其次，将 R 位加到计数器最左端的位而不是最右端的位。（*为什么现代操作系统里面没有提到使用「双向链表+哈希表」的构建 LRU 缓存的方法*）。
+  - **工作集页面置换算法**：进程的工作集可以被称为过去 t 秒实际运行时间中它所访问过的页面的集合，基于工作集的页面置换算法的基本思路就是找出一个不在工作集的页面并淘汰它。每个时钟滴答中，有一个定期的时钟中断会用软件方法来清除 R 位。在处理每个表项时，检查 R 位，如果 **R = 1**，把当前实际时间写进页表项的“上次使用时间”域，以表示缺页中断发生时该页面正在被使用，即它在工作集中，不应该被删除；如果 **R = 0且生存时间大于 t**，那么这个页面就不再在工作集中，用新的页面替换它；如果 **R = 0且生存时间小于等于 t**，则该页面仍然在工作集中，但将其作为候选者，当扫描完整个页表后，还是没有发现 R = 0 且生存时间大于t 的表项时，就从候选者中挑出生存时间最长的进行替换。
   - **工作集始终页面置换算法！**：该算法基于时钟算法，并使用了工作集信息。每次缺页中断，首先检查指针指向的页面，如果**R = 1**，该页面在当前时钟滴答中就被使用过，那么该页面就不适合被淘汰，然后把该页面的的 R 位置0，指针指向下一个页面；如果**R = 0且生存时间大于 t 且该页面是干净的**，他就不在工作集中，用一个新页面替换它；如果**R = 0且生存时间大于 t 且该页面被修改过**，就不能立即申请页框，因为这个页面在磁盘上没有有效副本，**为了避免由于调度写磁盘操作引起进程切换**，指针继续向前走。
   > 参考：[现代操作系统 3.4-页面置换算法]()
 
@@ -1573,15 +1539,7 @@
 
 ## Linux
 <details>
-  <summary>Linux 的 I/O 模型介绍以及同步异步阻塞非阻塞的区别（超级重要）</summary>
-  
-</details>
-<details>
   <summary>文件系统的理解（EXT4，XFS，BTRFS）</summary>
-  
-</details>
-<details>
-  <summary>文件处理 grep，awk，sed 这三个命令必知必会</summary>
   
 </details>
 <details>
@@ -1593,11 +1551,15 @@
   
 </details>
 <details>
+  <summary>文件处理 grep，awk，sed 这三个命令必知必会</summary>
+  
+</details>
+<details>
   <summary>查询进程占用CPU的命令（注意要了解到 used，buf，***代表意义）</summary>
   
 </details>
 <details>
-  <summary>linux 的其他常见命令（kill，find，cp等等）</summary>
+  <summary>linux 的常见命令（kill，find，cp等等）</summary>
   
 </details>
 <details>
@@ -1623,15 +1585,40 @@
 
 ## 数据结构
 <details>
-  <summary>B 树和 B+ 树的区别，分别是怎么实现的</summary>
+  <summary>C++ 的 STL 介绍</summary>
 
+  - STL 是C++标准库的重要组成部分，不仅是一个可复用的组件库，而且是一个包罗数据结构和算法的软件框架。
+  - **STL 六大组件**
+    -  **容器**（Containers）：各种数据结构，如：`vector`、`list`、`deque`、`set`、`map`。用来存放数据。从实现的角度来看，STL容器是一种 class template。
+    - **算法**（algorithms）：各种常用算法，如：`sort`、`search`、`copy`、`erase`。从实现的角度来看，STL 算法是一种 function template。
+    - **迭代器**（iterators）：容器与算法之间的胶合剂，是所谓的“泛型指针”。共有五种类型，以及其他衍生变化。从实现的角度来看，迭代器是一种将 operator*、operator->、operator++、operator- - 等指针相关操作进行重载的 class template。所有 STL 容器都有自己专属的迭代器，只有容器本身才知道如何遍历自己的元素。原生指针也是一种迭代器。
+    - **仿函数**（functors）：行为类似函数，可作为算法的某种策略。从实现的角度来看，仿函数是一种重载了operator() 的 class 或 class template。一般的函数指针也可视为狭义的仿函数。
+    - **适配器**（adapters）：一种用来修饰容器、仿函数、迭代器接口的东西。例如：STL 提供的 queue 和 stack，虽然看似容器，但其实只能算是一种容器配接器，因为它们的底部完全借助 deque，所有操作都由底层的 deque 供应。改变 functors 接口者，称为 function adapter；改变 container 接口者，称为 container adapter；改变 iterator 接口者，称为 iterator adapter。
+    - **配置器**（allocators）：负责空间配置与管理。从实现的角度来看，配置器是一个实现了动态空间配置、空间管理、空间释放的 class template。
+    > 参考：[STL 简介和常见的面试题](https://blog.csdn.net/dreamispossible/article/details/89442263?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-6.nonecase&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-6.nonecase)
+    
 </details>
 <details>
-  <summary>用过哪些数据结构</summary>
-
-</details>
-<details>
-  <summary>图有哪两种遍历方式</summary>
+  <summary>B- 树和 B+ 树的区别，分别是怎么实现的</summary>
+  
+  - 相对于在外存中操作，在内存中操作要快许多，所以我们尽量发数据放在内存中进行查找操作，但如果一个数据集十分庞大，无法放入内存，还是需要在外存中查询。查询过程中，如果每次从外存中只读取一个数据，I/O 操作过于频繁，效率是极低的；为了提高效率，可以**每次从外存中读取一批数据到内存**，再在这一批数据中查找目标值。为此引入多路搜索树，即 B- 树和 B+ 树。
+  - **m 阶 B- 树**
+    - 根节点至少有两个子女。
+    - 每个中间节点都包含 k - 1 个元素 和 k 个孩子，其中 $m/2 \leq k \leq m$。
+    - 每一个叶子节点都包含 k - 1 个元素，其中 $m/2 \leq k \leq m$。
+    - 所有的叶子节点都位于同一层。
+    - 每个节点中的元素从小到大排列，节点当中 k - 1 个元素正好是 k 个孩子包含的元素的值域划分。
+  ![avatar](./B-树.png)
+  - **m 阶 B+ 树**
+    - 有 k 个子树的中间节点包含有 k 个元素。
+    - 每个元素步保存数据，只用来索引。
+    - 所有数据保存在叶子节点。
+    - 所有的叶子节点中包含了全部元素的信息，及指向这些元素记录的指针。
+    - 叶子节点本身按照关键字的大小从小到大顺序来连接。
+    - 所有的中间节点元素都同时存在于子节点，在子节点元素中是最大（或最小）元素。
+  ![avatar](./B+树.png)
+  - **B- 树与 B+ 树对比**：
+  > 参考：[数据结构 8.2-B-树]()，[b+树图文详解](https://blog.csdn.net/qq_26222859/article/details/80631121)
 
 </details>
 <details>
@@ -1640,6 +1627,24 @@
 </details>
 <details>
   <summary>STL 里 map 的底层实现</summary>
+
+</details>
+<details>
+  <summary>STL 源码中的 hash 表的实现</summary>
+
+</details>
+<details>
+  <summary>STL 中 unordered_map 和 map 的区别</summary>
+
+</details>
+<details>
+  <summary>STL 中 vector 的实现</summary>
+
+
+</details>
+<details>
+  <summary>vector 使用的注意点及其原因，频繁对 vector 调用 push_back() 对性能的影响和原因</summary>
+
 
 </details>
 
