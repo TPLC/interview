@@ -1626,29 +1626,49 @@
 
 </details>
 <details>
-  <summary>怎么用 STL 最快实现队，优先队列</summary>
-
-</details>
-<details>
   <summary>STL 里 map 的底层实现</summary>
 
-</details>
-<details>
-  <summary>STL 源码中的 hash 表的实现</summary>
+  - map 使用**红黑树**作为底层实现。红黑树是一种二叉搜索树，红黑树的查找、插入、删除的时间复杂度都是 **O(logn)**，且性能稳定。（*相比于平衡二叉搜索树（AVL树），红黑树是一种弱平衡二叉搜索树，红黑树不需要要个保持高度平衡，其插入和删除时进行的旋转操作要比平衡二叉搜索树更少*）。
+  - map 中所有元素会根据元素的键值进行**自动排序**。
+  - map 所有元素都是 pair，pair 的第一元素视为 key，pair 的第二 元素视为 value。
+  - map 不允许两个元素拥有相同的 key。
+  - 不能修改元素的 key，因为 map 元素的 key 关系到 map 元素的排列规则；但是可以修改元素的 value，因为元素的 value 不会影响 map 的排列。
+  > 参考：[STL 源码剖析 5.4-map]()
 
 </details>
 <details>
   <summary>STL 中 unordered_map 和 map 的区别</summary>
 
+  - map 的底层实现是红黑树；unordered_map 的底层实现是哈希表。
+  - map 内部元素是有序的；unordered_map 内部元素是无序的。
+  - map 查找的时间复杂度是 O(logn)；unordered_map 查找的时间复杂度是 O(1)，最坏是 O(n)。
+  - map 插入的时间复杂度是 O(logn)；unordered_map 插入的时间复杂度是 O(1)，最坏是 O(n)。
+  - map 删除的时间复杂度是 O(logn)；unordered_map 删除的时间复杂度是 O(1)，最坏是 O(n)。
+  - map 适用于有顺序要求的问题；unordered_map 适用于查找问题。  
+  > 参考：[c++ map与unordered_map区别及使用](https://blog.csdn.net/qq_21997625/article/details/84672775)
+
+</details>
+<details>
+  <summary>STL 中的 hash 表的实现</summary>
+
+  - **基本构思**：开辟物理地址连续的桶数组 ht[]，借助散列函数 hash()，将词条关键码 key 映射为桶地址 hash(key)，从而快速地确定待操作词条的物理位置。但是不同关键码可能映射到同一个桶，即发生哈希冲突。
+  - **封闭定址策略**：若新词条与旧词条发生冲突，允许建立新的数据结构，把这个桶内的数据转移到新的数据结构内。
+    - 多槽位法：将彼此冲突的每一组词条组织为一个小规模的子词典，分别存放于它们共同对应的桶单元中。
+    - 独立链法：令相互冲突的每组词条构成小规模的子词典， 采用列表来实现各子词典。
+    - 公共溢出法：在原散列表之外另设一个词典结构，一旦在插入词条时发生冲突就将该词条转存至这个新创建的词典结构中。
+  - **开放定址策略**：若新词条与已有词条冲突， 则只允许在散列表内部为其寻找另一空桶。
+    - 线性试探法：在插入关键码 key 时，若发现对应的桶单元被占用，那么就试探该桶单元后面的一个桶单元是否被占用，如果这个桶也被占用，那么继续往后找，直到发现一个可用空桶。
+    - 查找链：假定使用线性试探法，那么查找词条时从桶单元 ht[hash(key)] 开始查找，若没有找到，就试探后面的一个桶，如果还没有，就继续往后找，直到桶中为 key，或桶为空（最后一个桶的后面也看作空桶）。
+    - 懒惰删除：查找链中如果有任何一环缺失，都会导致无法抵达后续词条，为了解决这个问题，引入懒惰删除，再已经删除的同上设置一个标识，指示该桶虽然为空，但是此前存放过词条。  
+  > 参考：[数据结构 9.3-散列表]()
+
 </details>
 <details>
   <summary>STL 中 vector 的实现</summary>
 
-
-</details>
-<details>
-  <summary>vector 使用的注意点及其原因，频繁对 vector 调用 push_back() 对性能的影响和原因</summary>
-
+  - vector 内部维护一个数组，当数组空间不足时，进行**扩容**，创建一个大小为原数组大小两倍的数组，复制原数组的内容到新数组中，然后释放原数组。
+  - 当装填因子（指向量规模与其内部数组的容量之比）小于某一阈值的时候，数组发生**下溢**。当装填因子小于 25% 的时候，创建一个大小为原数组大小一半的数组，复制原数组的内容到新数组，然后释放原数组。
+  > 参考：[数据结构 2-向量]()
 
 </details>
 
@@ -1658,53 +1678,6 @@
   
   - 当有多层嵌套循环的时候记得检查循环变量有无用错的地方。
   - 
-</details>
-<details>
-  <summary>MySQL 统计各个分数的人数</summary>
-
-</details>
-<details>
-  <summary>二叉搜索树的第 k 大（小）的数</summary>
-
-</details>
-<details>
-  <summary>基本的排序算法，时间空间复杂度</summary>
-
-</details>
-<details>
-  <summary>归并排序的空间复杂度为什么是 O(n)</summary>
-
-</details>
-<details>
-  <summary>S快速排序最好最坏时间复杂度，怎么样避免出现最差情况</summary>
-
-</details>
-<details>
-  <summary>堆排序应用于大数据</summary>
-
-</details>
-<details>
-  <summary>写一个二叉树实现一个堆，再实现堆排序</summary>
-
-</details>
-<details>
-  <summary>map 实现分数排序，分数相同按照胶卷时间</summary>
-
-</details>
-<details>
-  <summary>循环有序数组查找某个数在不在里面</summary>
-
-</details>
-<details>
-  <summary>Z 字形遍历二叉树</summary>
-
-</details>
-<details>
-  <summary>找字符串里的最长不重复子串</summary>
-
-</details>
-<details>
-  <summary>围成一张桌子 n个人编号1~n，他们开始报数，从1号开始报数，报到3离开桌子，直到剩一个人，找最后剩下的一个人的编号，能否用循环链表解决</summary>
 
 </details>
 
