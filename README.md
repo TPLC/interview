@@ -132,18 +132,22 @@
   
   - **public 继承**
     - **成员访问方式变化**：基类 public 成员 $\Rightarrow$ 派生类 public 成员；基类 protected 成员 $\Rightarrow$ 派生类 protected 成员；基类 private 成员 $\Rightarrow$ 派生类中不可见。
+    - public 继承意味着 **is-a**（是一种），适用于基类身上的每一件事情一定也适用于派生类身上，每一个派生类对象也都是一个基类对象。设计类时，一定要注意使用 public 继承的时候，派生类对象一定也是一个基类对象。
   - **private 继承**
     - **成员访问方式变化**：基类 public 成员 $\Rightarrow$ 派生类 private 成员；基类 protected 成员 $\Rightarrow$ 派生类 protected 成员；基类 private 成员 $\Rightarrow$ 派生类中不可见。
-  - protected 继承
+    - private 继承意味着 **is-implemented-in-terms-of**（根据某物实现出），但是尽量使用复合（composition）实现 is-implemented-in-terms-of，而不是 private 继承。
+  - **protected 继承**
     - **成员访问方式变化**：基类 public 成员 $\Rightarrow$ 派生类 protected 成员；基类 protected 成员 $\Rightarrow$ 派生类 protected 成员；基类 private 成员 $\Rightarrow$ 派生类中不可见。
-  - 多重继承
-  - 虚继承
-  > 参考：[]()
+  - 更多设计上的细节参考 Effective C++ 6-继承与面向对象的设计。
+  > 参考：[Effective C++ 6-继承与面向对象的设计]()
 
 </details>
 <details>
   <summary>多态</summary>
 
+  - **静态多态**（编译时多态）：函数重载。
+  - **动态多态**（运行时多态）：虚函数覆写。
+  > 参考：[C++多态面试题汇总](https://blog.csdn.net/Shuffle_Ts/article/details/98618661)
 
 </details>
 <details>
@@ -219,8 +223,6 @@
 <details>
   <summary>为什么虚函数是动态绑定</summary>
   
-  - 静态绑定：
-  - 动态绑定：
   - 当一个对象的指针需要调用一个它的虚函数的时候，首先它需要找到它的虚函数表，在虚函数表中找到该虚函数的地址，然后运行处于该地址上的函数，但问题是只有当对象实例化以后才拥有一个虚函数表，而实例化在运行阶段发生，不在编译阶段发生。举个例子，有一个父类 `class A` 和一个他的派生类 `class B`，`class A` 有一个虚函数 `virtual void func1();`，和一个非虚函数 `void func2();`，创建一个指针 `A* a = new B`， 在程序中写入 `a->func1();`，在编译阶段，编译器只知道 `a` 是一个 `class A` 类型的指针，但是此时 `a` 所指向的内存并没有存放虚函数表的地址，也就不知道虚函数的地址，所以**编译期间无法确定虚函数的函数地址**，但是如果在程序中写入 `a->func2();`，由于 `func2()` 不是虚函数，他的函数地址在编译阶段可以确定。所以虚函数是动态绑定，在运行期可确定，非虚函数是静态绑定，在编译器可确定。
   > 参考：[为什么虚函数在编译期间无法绑定](https://blog.csdn.net/qq_41786318/article/details/81979658)
 
@@ -1284,7 +1286,7 @@
   - **互斥锁**：在访问共享资源后临界区域前，对互斥锁进行加锁；在访问完成后释放互斥锁导上的锁。在访问完成后释放互斥锁导上的锁；对互斥锁进行加锁后，任何其他试图再次对互斥锁加锁的线程将会被阻塞睡眠，直到锁被释放后会被唤醒。一般适用于排他性的场景，如往共享内存中写数据。
   - **读写锁**：如果有其他线程读数据，则允许其他线程进行读操作，但不允许写操作；如果有其它线程写数据，则其它线程都不允许读、写操作。读写锁适用于读比写多的场景。
   - **自旋锁**：自旋锁与互斥锁功能一样，保证临界区只有一个线程或进程，唯一一点不同的就是互斥量阻塞后睡眠让出 CPU，而自旋锁阻塞后不会让出 CPU，会一直忙等待，直到得到锁。自旋锁适用于锁的持有时间较短的场景。
-  - **乐观锁**：每次使用数据���时候都不会加锁，只有在提交的时候会检查是否违反数据完整性。适用于并发竞争不激烈的场景。
+  - **乐观锁**：每次使用数据的时候都不会加锁，只有在提交的时候会检查是否违反数据完整性。适用于并发竞争不激烈的场景。
   - **悲观锁**：每次使用数据的时候都会加锁。适用于并发竞争激烈的场景。
   - 不确定乐观锁和悲观锁是否可以与其他三种锁并列。
   > 参考：[多线程的同步与互斥](https://blog.csdn.net/daaikuaichuan/article/details/82950711)，[各种锁以及使用场景](https://blog.csdn.net/lyl194458/article/details/90641870)
@@ -1424,17 +1426,7 @@
 
 </details>
 <details>
-  <summary>生产者消费者</summary>
-  
-  w
-</details>
-<details>
-  <summary>读者写者</summary>
-  
-  
-</details>
-<details>
-  <summary>哲学家就餐</summary>
+  <summary>生产者消费者，读者写者，哲学家就餐</summary>
   
   
 </details>
@@ -1581,7 +1573,7 @@
 
 ## Linux
 <details>
-  <summary>Linux的I/O模型介绍以及同步异步阻塞非阻塞的区别（超级重要）</summary>
+  <summary>Linux 的 I/O 模型介绍以及同步异步阻塞非阻塞的区别（超级重要）</summary>
   
 </details>
 <details>
