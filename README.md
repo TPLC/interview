@@ -845,7 +845,7 @@
     - 函数原型：`int PASCAL FAR recv(SOCKET s, char FAR *buf, int len, int flags)`。
   - `select` 函数用于检测一个或多个套接字的状态，对每一个套接字来说，这个调用可以请求读、写或错误状态方面的信息。请求给定状态的套接字集合由一个 `fd_set` 结构指示，在返回时，此结构被更新，以反映那些满足特定条件的套接字的子集，同时， `select` 函数调用返回满足条件的套接字的数目。
     - 函数原型：`int PASCAL FAR select(int nfds, fd_set FAR * readfds, fd_set FAR * writefds, fd_set FAR * exceptfds, const struct timeval FAR * timeout)`。
-    - 使用 `select` 函数可以写出**非阻塞**的程序，可以进行 **IO 多路复用**。当程序中使用 `connect`，`accept`，`recv`这几个函数时，程序就是阻塞程序，执行到这些函数的时候必须等待某个事件发生，如果没有发生，进程或者线程就被阻塞，而且如果有多个套接字都要传输的时候，一个套接字在发送和接收过程中一直占用着设定的端口，此时其他套接字无法在该端口传输数据，其阻塞时间又会浪费实际可用的时间，使得效率很低。所以可以使用 `select` 函数，`select` 函数可以检测套接字的状态，只要轮询 `select` 函数，查看当前是否有可以处理的套接字即可。
+    - 使用 `select` 函数可以进行 **I/O 多路复用**。当程序中使用 `connect`，`accept`，`recv`这几个函数时，程序就是阻塞程序，执行到这些函数的时候必须等待某个事件发生，如果没有发生，进程或者线程就被阻塞，而且如果有多个套接字都要传输的时候，一个套接字在发送和接收过程中一直占用着设定的端口，此时其他套接字无法在该端口传输数据，其阻塞时间又会浪费实际可用的时间，使得效率很低。所以可以使用 `select` 函数，`select` 函数可以检测套接字的状态，只要轮询 `select` 函数，查看当前是否有可以处理的套接字即可。
   - 还差两张 socket 通信原理的图没画，一个 TCP 的，一个 UDP 的。
   > 参考：[socket 技术详解](https://www.cnblogs.com/fengff/p/10984251.html)，[socket 通信中 select 函数的使用和解释](https://www.cnblogs.com/gangzilife/p/9766292.html)，[IO 多路复用](https://www.jianshu.com/p/dd5b6893bef7)
   
@@ -1536,50 +1536,61 @@
   > 参考：[现代操作系统 3.7-分段]()，[为什么说分页管理的地址空间是一维的，而分段管理的地址空间是二维的](https://www.zhihu.com/question/21736290?sort=created)，[为什么分页机制中逻辑地址空间是一维的，而分段机制中逻辑地址空间是二维的](https://blog.csdn.net/yangkuiwu/article/details/53493458?utm_source=itdadao&utm_medium=referral)
 
 </details>
+<details>
+  <summary>文件系统的理解</summary>
+
+  - **文件**：文件是一种抽象机制，它**提供了一种在磁盘上保存信息而且方便以后读取的方法**。这种方法可以使用户不必了解存储信息的方法 、 位置和实际磁盘工作方式等有关细节。
+  - **文件访问**
+    - 顺序访问：进程在这些系统中可从头按顺序读取文件的全部字节或记录，但不能跳过某一些内容，也不能不按顺序读取。
+    - 随机访问：当用磁盘来存储文件时，可以不按顺序地读取文件中的字节或记录，可以按照关键字而不是位置来访问记录。 
+  - **文件存储实现**：每个文件被赋予一个 **i 节点**的数据结构，其中列出了**文件属性和文件块的磁盘地址**。每个 i 节点都有一个号码，可以使用 i 节点号标识文件。
+  - **目录的实现**：目录由一系列的目录项组成，而一个目录项由文件的文件名和文件对应的 i 节点号组成。文件中不包含文件名，文件名只存在于目录项中。
+  - **共享文件**
+    - 硬链接：硬链接创建一个目录项，目录项中包含文件名和一个 i 节点号，该 i 节点号代表被共享的那个文件。
+    - 软链接：软链接创建一个文件，文件中保持着被共享的文件的地址。（*相当于 Windows 中的快捷方式*）。
+    - 硬链接与软连接的区别：软链接可以跨文件系统；硬链接不可以跨操作系统，因为不同操作系统的 i 节点定义可能不同，软链接可以对目录进行链接；硬链接不可以对目录进行链接。删除软链接的源文件，链接文件将无效；删除硬链接的源文件，链接文件仍有效。
+  - **虚拟文件系统**（VFS）：由于一个操作系统中可以有多个文件系统，为了统一接口，引入虚拟文件系统，对不同文件系统的所有细节进行抽象，使得不同文件系统在操作系统看来都是相同的。
+  - **日志文件系统**：保存一个用干记录系统下一步将要做什么的日志，这样当系统在完成它们即将完成的任务前崩溃时，重新启动后，可以通过查看日志，获取崩溃前计划完成的任务，并完成它们。
+  > 参考：[现代操作系统 4-文件系统]()，[硬盘基本知识](https://www.cnblogs.com/jswang/p/9071847.html)，[Linux系统硬链接和软链接](https://www.cnblogs.com/songgj/p/9115954.html)，[Linux 的 inode 的理解](https://blog.csdn.net/xuz0917/article/details/79473562?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-2.channel_param&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-2.channel_param)
+
+</details>
+<details>
+  <summary>I/O 复用的三种方法（select，poll，epoll）深入理解</summary>
+
+  - 假设有多路网络连接，如果所有连接共用一个线程，那么一个连接在等待数据的时候，其他连接同时也在等待这个连接结束，这个连接将阻塞后面所有的连接；如果为每一个连接都创建一个独立的线程，线程之间的切换将比较耗时，而且创建多个线程也比较占空间；如果所有连接共用一个线程，不主动等待数据，而是查询数据，查询是否有数据发送过来给连接，如果有数据就读取，这就是 I/O 复用。
+  - **I/O 复用的适用场景**
+    - 客户端处理多个 socket。
+    - 客户端同时处理连接和用户输入。
+    - 服务器同时处理 TCP 和 UDP。
+    - 服务器要监听多个端口。
+    - 服务器要同时处理监听 socket 和 连接 socket。
+  - **select** 允许应用程序监视一组文件描述符，等待一个或者多个描述符成为就绪状态，然后遍历所有的描述符，找到就绪的描述符，从而完成 I/O 操作。
+    - 函数原型：`int select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);`。
+    - `fd_set` 使用数组实现，数组大小使用 `FD_SETSIZE` 定义，所以只能监听少于 `FD_SETSIZE` 数量的描述符。
+    - 有三种类型的描述符类型：`readset`、`writeset`、`exceptset`，分别对应读、写、异常条件的描述符集合。
+    - `timeout` 为超时参数，**调用 `select` 会一直阻塞直到有描述符的事件到达或者等待的时间超过 `timeout`**。
+    - 成功调用返回结果大于 0，出错返回结果为 -1，超时返回结果为 0。
+    - 每次调用 `select`，都需要把 fd 集合从用户态拷贝到内核态，这个开销在 fd 很多时会很大。
+    - 同时每次调用 `select` 都需要在内核遍历传递进来的所有 fd 集合，这个开销在 fd 很多时也很大。
+    - select支持的文件描述符数量很少，默认是1024。
+  - **poll** 的功能与 select 类似，也是等待一组描述符中的一个成为就绪状态。
+    - 函数原型：`int poll(struct pollfd *fds, unsigned int nfds, int timeout);`。
+    - `poll` 没有描述符数量的限制。
+    - `poll` 中使用 pollfd 传输描述符数组，而不是 fd_set。
+  - **epoll** 允许应用程序监视一组文件描述符，等待一个或者多个描述符成为就绪状态，无需遍历描述符，因为会返回就绪的描述符。
+    - `int epoll_create(int size);`：内核中间加一个 ep 对象，把所有需要监听的 socket 都放到 ep 对象中。
+    - `int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);`：epoll_ctl 负责把 socket 增加、删除到内核的 ep 对象中。
+    - `int epoll_wait(int epfd, struct epoll_event * events, int maxevents, int timeout);`：epoll_wait 负责检测可读队列，一直阻塞直到有 socket 可读或者超时。
+    - epoll 有 EPOLLLT 和 EPOLLET 两种触发模式，LT 是默认模式，ET 是高速模式。
+    - LT 模式是水平触发。LT 模式下，事件就绪时，假设对事件没做处理，内核会反复通知事件就绪。
+    - ET 模式是边缘触发。ET 模式下，事件就绪时，内核只会在第一次通知事件就绪，通知之后进程必须立即处理事件，假设对事件没做处理，内核不会反复通知事件就绪。（*为什么 ET 模式要是非阻塞*）
+  > 参考：[I/O多路复用-概述与应用场景](https://my.oschina.net/u/2247638/blog/891197)，[I/O 多路复用是什么意思](https://www.zhihu.com/question/32163005)，[I/O多路复用技术是什么](https://www.zhihu.com/question/28594409)，[select、poll、epoll之间的区别](https://www.cnblogs.com/aspirant/p/9166944.html)，[彻底理解 I/O 多路复用！](https://mp.weixin.qq.com/s/PzOF9lFYVacPIRx0JakTjA)，[EPOLLLT和EPOLLET的区别](https://blog.csdn.net/u010325193/article/details/86413438?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-3.channel_param&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-3.channel_param)
+  
+</details>
 
 ## Linux
 <details>
-  <summary>文件系统的理解（EXT4，XFS，BTRFS）</summary>
-  
-</details>
-<details>
-  <summary>I/O 复用的三种方法（select，poll，epoll）深入理解，包括三者区别，内部原理实现</summary>
-  
-</details>
-<details>
-  <summary>Epoll 的 ET 模式和 LT 模式（ET的非阻塞）</summary>
-  
-</details>
-<details>
-  <summary>文件处理 grep，awk，sed 这三个命令必知必会</summary>
-  
-</details>
-<details>
-  <summary>查询进程占用CPU的命令（注意要了解到 used，buf，***代表意义）</summary>
-  
-</details>
-<details>
-  <summary>linux 的常见命令（kill，find，cp等等）</summary>
-  
-</details>
-<details>
-  <summary>shell 脚本用法</summary>
-  
-</details>
-<details>
-  <summary>硬连接和软连接的区别</summary>
-  
-</details>
-<details>
-  <summary>文件权限怎么看（rwx）</summary>
-  
-</details>
-<details>
-  <summary>文件的三种时间（mtime, atime，ctime），分别在什么时候会改变</summary>
-  
-</details>
-<details>
-  <summary>Linux 监控网络带宽的命令，查看特定进程的占用网络资源情况命令</summary>
+  <summary>文件处理命令 grep，awk，sed</summary>
   
 </details>
 
