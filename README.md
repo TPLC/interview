@@ -2204,7 +2204,7 @@
 <details>
   <summary>航路规划模块介绍</summary>
   
-  - 这个模块需要做的事情就是给定起点，终点和海上岛屿信息，规划出一条从起点到终点且与岛屿无碰撞的的路径；同时，需要一个测试软件，用于展示算法的可行性。
+  - 航路规划模块需要做的事情就是给定起点，终点和海上岛屿信息，规划出一条从起点到终点且与岛屿无碰撞的的路径；同时，需要一个测试软件，用于展示算法的可行性。
 
 </details>
 <details>
@@ -2308,6 +2308,43 @@
   > 参考：[]()
   
 </details>
+<details>
+  <summary>电机控制</summary>
+   
+  - **编码器测速**：编码器分为绝对式和增量式，绝对式的马盘
+  - **PID 调节**：
+</details>
+<details>
+  <summary>舵机控制</summary>
+   
+
+</details>
+<details>
+  <summary>CCD 巡线</summary>
+   
+
+</details>
+<details>
+  <summary>策略</summary>
+   
+
+</details>
+<details>
+  <summary>通信</summary>
+   
+
+</details>
+<details>
+  <summary>姿态获取和调整</summary>
+   
+
+</details>
+<details>
+  <summary>调试中遇到的问题</summary>
+   
+
+</details>
+
 
 ## 自我介绍
 
