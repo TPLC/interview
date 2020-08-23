@@ -2311,7 +2311,7 @@
 <details>
   <summary>电机控制</summary>
    
-  - **编码器测速**：编码器分为绝对式和增量式，绝对式的马盘
+  - **编码器测速**：
   - **PID 调节**：
 </details>
 <details>
