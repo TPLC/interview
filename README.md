@@ -13,7 +13,7 @@
   
 </details>
 <details>
-  <summary>new 与 operator new 的区别（自问）</summary>
+  <summary>new 与 operator new 的区别</summary>
 
   - `new` (new operator) 是一个内置的**运算符**；`operator new` 是一个**函数**。
   - `new` 做的工作是调用 `operator new(sizeof(A))` + 调用`A::A()` + 返回指针，即**分配内存+调用构造函数+返回指针**；而 `operator new` 仅仅做了**分配内存的工作**。
@@ -32,7 +32,7 @@
 
 </details>
 <details>
-  <summary>编译过程中的编译阶段所作的工作（自问）</summary>
+  <summary>编译过程中的编译阶段所作的工作</summary>
   
   - **词法分析 $\Rightarrow$ 语法分析 $\Rightarrow$ 语义分析**。
   - 词法分析：其任务是对源程序逐字扫描，从中识别出一个个“单词”，“单词”又叫做符号，他是程序语言的基本语法单位，如关键字，标识符，常数，运算符，分隔符等。
@@ -117,7 +117,7 @@
 
 </details>
 <details>
-  <summary>C++ 三大特性概括（自问）</summary>
+  <summary>C++ 三大特性概括</summary>
 
   - **封装 + 继承 + 多态**
   - 封装：**代码模块化**，隐藏对象的属性和实现细节仅公开接口供用户使用。
@@ -145,13 +145,13 @@
 <details>
   <summary>多态</summary>
 
-  - **静态多态**（编译时多态）：函数重载。
+  - **静态多态**（编译时多态）：函数重载，运算符重载，类模板，函数模板。
   - **动态多态**（运行时多态）：虚函数覆写。
   > 参考：[C++多态面试题汇总](https://blog.csdn.net/Shuffle_Ts/article/details/98618661)
 
 </details>
 <details>
-  <summary>重载，覆写，隐藏（自问）</summary>
+  <summary>重载，覆写，隐藏</summary>
   
   - 重载：同一可访问区内被声明的几个具有不同参数列表（参数的类型，个数，顺序不同）的同名函数，根据参数列表确定调用那个函数。
   - 覆写：派生类中重新定义的函数，其函数名，参数列表，返回类型，所有都必须同基类中被重写的函数一致，只有函数体不同。
@@ -320,6 +320,7 @@
   - C++ 支持泛型编程，支持模板类、函数模板等。
   - C++ 支持 RAII。
   - C++ 支持异常。
+  - C++ 支持函数重载。
   - 还有很多，不一一列举。
   > 参考：[C++面试宝典导读](https://www.nowcoder.com/tutorial/93/a34ed23d58b84da3a707c70371f59c21)
 
@@ -333,6 +334,10 @@
   - 由于 define 宏是在预处理阶段展开，返回立即数，所以 define 宏存在于代码段；而 const 常量位于数据段。
   - 由于 define 宏在预处理阶段被替换，所以如果由于这个 define 宏导致编译出错的话，返回的编译信息中不会有 define 宏的名称，而是 define 宏的替换值，如 `1.11`，而根据这个替换值难以定位错误发生的地方；如果使用 const 常量替换 define 宏，那么如果编译发生错误，那么编译信息中将会包含 const 常量的名称，可以轻松定位错误发生的位置。 
   > 参考：[浅谈define和const的区别](https://blog.csdn.net/ZYZMZM_/article/details/83302084)，[const与define的区别](https://www.cnblogs.com/zhangjiansheng/p/7630160.html)，[Effective C++ 条款02-尽量以 const，enum，inline 替换 #define]()
+
+</details>
+<details>
+  <summary>define 和 inline 的区别</summary>
 
 </details>
 <details>
@@ -549,9 +554,12 @@
 
 </details>
 <details>
-  <summary>对象复用的了解，零拷贝的了解</summary>
+  <summary>对象复用的了解，零拷贝的了解（未完）</summary>
 
-  - 
+  - 对象复用一般指继承和复合。public 继承塑膜出 is-a 关系，private 继承塑膜出根据某物实现关系；复合可以塑膜出 has-a 和根据某物实现关系。
+  - 零拷贝主要的任务是避免CPU将数据从一块存储拷贝到另一块存储。零拷贝技术常见于linux中，例如用户空间到内核空间的拷贝，可以采用零拷贝技术，通过 mmap，直接将内核空间的数据通过映射的方法映射到用户空间，即物理上共用这段数据。
+  - 以上答案不确定是否正确。
+  >  参考：[interview.md 对象复用，零拷贝]()
 
 </details>
 <details>
@@ -675,14 +683,91 @@
 </details>
 <details>
   <summary>模板的用法和适用场景</summary>
+  
+  - 模板是泛型编程的基础，泛型编程即以一种**独立于任何特定类型**的方式进行编程。使用模板的目的就是让程序员编写与类型无关的代码。
+  - 模板的声明或定义只能在全局，命名空间或类范围内进行，即不能在局部范围，函数内进行。比如不能在main函数中声明或定义一个模板。
+  - **函数模板**
+  ```C++
+  template <class 形参名, class 形参名, ......>
+  返回类型 函数名(参数列表) { ...... }
+  ```
+  - **类模板**
+  ```C++
+  template <class 形参名, class 形参名>
+  class 类名 { ...... }
+  ```
+  - **模板的非类型形参**
+    - 模板的非类型形参也就是内置类型形参，如 `template<class T, int a> class B{};` 其中 `int a` 就是非类型的模板形参。
+    - 非类型模板的**形参只能是整型，指针和引用**。像 `double`，`String`, `String **` 这样的类型是不允许的，但是 `double &`，`double *`，对象的引用或指针是正确的。
+    - 调用非类型模板形参的**实参必须是一个常量表达式**，即他必须能在编译时计算出结果。比如 `template <class T, int a> class A{};` 如果有 `int b`，这时 `A<int, b> m;` 将出错，因为 `b` 不是常量，如果是 `const int b`，这时  `A<int, b> m;` 就是正确的，因为这时 `b` 是常量。
+  - **类模板的默认模板类型形参**
+    - 可以为类模板的类型形参提供默认值，但不能为函数模板的类型形参提供默认值。函数模板和类模板都可以为模板的非类型形参提供默认值。
+    - 类模板的类型形参默认值形式为：`template<class T1, class T2=int> class A{};` 为第二个模板类型形参T2提供int型的默认值。
+  - **模板的实例化**
+    - 隐式实例化：模板只有在运行的时候才会生成相应的实例，如调用 `swap<int>(a, b);` 时，才会生成模板函数 `swap<int>(int, int)` 的实例。
+    - 显示实例化：显示实例化可以在编译期间生成实例，如声明 `template void swap<int>(int& a, int& b);`，可以提高运行时效率，但增加了编译时间。
+  - **全特化**：给定一个主模板类，他的模板参数都没有被指定，写一个与该主模板类名字相同，但是设定了所有的模板参数的模板类，该类称为主模板类的全特化版本。
+  ```C++
+  template <class T1, class T2> // 主模板类
+  class Test { ...... };
+  template <> // 全特化类
+  class Test<int, char> { ...... };
+  ```
+  - **偏特化**：给定一个主模板类，他的模板参数都没有被指定，写一个与该主模板类名字相同，但是设定了该主模板类的部分模板参数，该类称为主模板类的偏特化版本。函数模板只有全特化没有偏特化（为什么）。优先级：全特化 > 偏特化 > 主模板。
+  ```C++
+  template <class T1, class T2> // 主模板类
+  class Test { ...... };
+  template <class T> // 偏特化类，个数上偏特化
+  class Test<char, T> { ...... };
+  template <class T1, class T2> // 偏特化类，范围上偏特化
+  class Test<T1*, T2*> { ...... };
+  template <class T1, class T2> // 偏特化类，范围上偏特化
+  class Test<T1 const, T2 const> { ...... };
+  ```
+  - **模板适用场景**
+    - **数据类型和算法相分离的泛型编程**：如 STL 中的模板，实现了数据类型与容器算法的分离。
+    - **类型适配 Traits（萃取）**：当一个模板类需要模板参数类型提供一个函数（如 `dosomething()` ）时，有的模板参数类型可能有这个同名的函数，而有的类型可能没有，这样的话，如果有使用没有该同名函数的模板参数类型的模板，编译会通不过。为了解决这个问题可以增加一个 `Traits` 类，他会对外提供一个函数（如 `dosomething()`），对有该函数的模板参数类型，他转发这个函数；对没有这个函数的模板参数类型，他做了特化，实现一个空的函数，此时，无论是有该函数的模板参数类型还是没有该函数的模板参数类型都可以通过编译。
+    ![avatar](./未使用traits.png)
+    ![avatar](./使用traits.png)
+    - **函数转发**：函数转发指的是通过模板类将函数指针以及它的参数类型记录下来，在需要的时候再对函数进行调用。函数转发的意义是啥。
+    ```C++
+    #include <iostream>
+    using namespace std;
 
+    template<typename T>  class function; // 为什么这里声明用的是 typename T，下面的定义则是 typename R 和 typename A0。
+    template<typename R, typename A0>
+    class function <R (A0)> // 为什么可以这么写。
+    {
+    public:
+        typedef R(*fun)(A0 );
+        function(fun ptr):m_ptr(ptr){}
+        R operator()(A0 a)
+        {(*m_ptr)(a);}
+        fun m_ptr;
+    };
+
+    int testFun(int a) {
+        printf("%d", a);
+        return 2;
+    }
+
+    int main() {
+        function<int (int)> f1(&testFun); // 该例中，把函数 testFun 的函数指针，以及它的函数签名 int (int) 作为模板参数保存在了 f1 这个对象中。在需要的时候，就可以用 f1 对这个函数进行调用。
+        f1(4);
+        return 0;
+    }
+    ```
+    - **元编程**：元编程的主要思想为，在编译器实现对类型或数值的计算；利用模板特化机制实现编译期循环结构，模板元程序则由编译器在编译期解释执行。
+  > 参考：[interview.md 模板]()，[C++ 模板总结](https://blog.csdn.net/tonglin12138/article/details/88595747)，[C++模板全特化、偏特化](https://blog.csdn.net/m_buddy/article/details/72973207)，[C++ 模板应用浅析](https://blog.csdn.net/cyxisgreat/article/details/37957687)
 </details>
 <details>
-  <summary>为什么用成员初始化列表会快一些</summary>
+  <summary>成员初始化列表</summary>
 
-  - 因为对象的初始化动作发生在进入构造函数本体之前，在构造函数内部进行的都是赋值操作，而不是初始化。假定再构造函数内对成员变量进行赋值，如果是内置类型的话，没有多少影响，但是如果是类对象，那么就会先调用一次构造函数，然后再调用赋值操作符进行赋值操作。如果使用成员初始化列表就可以免去一次赋值操作。
-  - 与初始化列表有关的的补充说明：可以使用派生类的成员初始化列表调用基类的带参构造函数，派生类构造函数一般隐式调用基类的默认构造函数，想要调用基类的带参构造函数就在派生类的构造函数的初始化列表中调用基类的带参构造函数。
-  > [Effective C++ 条款04-确定对象被使用前已被初始化]()，[MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)解析](https://blog.csdn.net/weixin_41157654/article/details/80820520)
+  - **为什么用成员初始化列表会快一些**：因为对象的初始化动作发生在进入构造函数本体之前，在构造函数内部进行的都是赋值操作，而不是初始化。假定再构造函数内对成员变量进行赋值，如果是内置类型的话，没有多少影响，但是如果是类对象，那么就会先调用一次构造函数，然后再调用赋值操作符进行赋值操作。如果使用成员初始化列表就可以免去一次赋值操作。
+  - 可以使用派生类的成员初始化列表调用基类的带参构造函数，派生类构造函数一般隐式调用基类的默认构造函数，想要调用基类的带参构造函数就在派生类的构造函数的初始化列表中调用基类的带参构造函数。
+  - 初始化 `const` 成员变量的唯一方法就是使用初始化列表。
+  - 成员变量的初始化顺序和初始化列表中列出的变量的顺序无关，只和成员变量再类中声明的顺序有关。
+  > [Effective C++ 条款04-确定对象被使用前已被初始化]()，[MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)解析](https://blog.csdn.net/weixin_41157654/article/details/80820520)，[interview.md 初始化列表]()
 
 </details>
 <details>
@@ -782,12 +867,152 @@
 <details>
   <summary>左值，右值，左值引用，右值引用</summary>
 
+  - 
+  > 参考：[]()
 
 </details>
 <details>
   <summary>C++11 中的线程库</summary>
 
 
+</details>
+<details>
+  <summary>volatile</summary>
+
+  - `volatile` 关键字是一种类型修饰符，用它声明的类型变量可以被某些编译器未知的因素改变（操作系统，硬件等）。所以使用该关键字告诉编译器不应对这样的对象进行优化。
+  - `volatile` 关键字声明的变量，每次访问都必须从内存中取值（没有被 `volatile` 修饰的变量，可能由于被编译器优化，从CPU寄存器中取值）。
+  - `const`（编译期保证代码中没有被修改的地方，运行的时候不受限制）可以是 `volatile`（编译期告诉编译器不优化该变量，在运行期每次都从内存中取值）：表示一个变量在程序编译期不能被修改并且不能被优化，在程序运行期变量值可能会被修改，每次使用到该变量值都需要从内存中读取，防止意外错误。
+  - 指针可以是`volatile`的。
+  > 参考：[interview.md volatile]()
+
+</details>
+<details>
+  <summary>assert</summary>
+
+  - `assert` 的作用是计算表达式 expression ，如果其值为假，那么它先向 `stderr` 打印一条出错信息,然后通过调用 `abort` 来终止程序运行。
+  - 使用 `assert` 要包含头文件 `assert.h`。
+  - `assert` 是宏，不是函数。
+  - 可以通过在包含 `#include` 的语句之前插入 `#define NDEBUG` 来禁用 `assert` 调用。
+  - `assert` 可以用于在函数开始处检验传入参数的合法性。
+  - 每个 `assert` 只检验一个条件比较好，因为同时检验多个条件时，如果断言失败，无法直观的判断是哪个条件失败。
+  - 在 `assert` 中不能使用改变环境的语句，因为 `assert` 只在 DEBUG 生效，如果这么做，会使用程序在真正运行时遇到问题。`assert` 只有在 Debug 版本中才有效，如果编译为 Release 版本则被忽略。
+  > 参考：[断言（assert）的用法](https://www.runoob.com/w3cnote/c-assert.html)
+
+</details>
+<details>
+  <summary>union</summary>
+
+  - union（联合体）是一种**节省空间**的特殊的类，一个 union 可以有多个数据成员，但是在**任意时刻只有一个数据成员可以有值**。当某个成员被赋值后其他成员变为未定义状态。
+  - union 变量所占用的内存长度等于最长的成员的内存长度。
+  - 其成员的默认访问权限为 public。
+  - 可以含有构造函数、析构函数。
+  - 可以包含没有任何构造函数和析构函数的类对象。
+  - 不能含有引用类型的成员。
+  - 不能继承自其他类，不能作为基类。
+  - 不能含有虚函数。
+  - 不能包含 static 成员。
+  - 匿名 union 指的是一个没有赋予他名称的 union。
+  - 匿名 union 在其定义所在作用域可直接访问 union 成员。
+  - 匿名 union 不能包含 protected 成员或 private 成员。
+  - 全局匿名 union 必须是 static 的。
+  - union 的一个作用是可以用来**测试 CPU 是大端模式还是小端模式**。对于一个由 2 个字节组成的 16 位整数，在内存中存储这两个字节有两种方法：一种是将低序字节存储在起始地址，这称为小端（little-endian）字节序；另一种方法是将高序字节存储在起始地址，这称为大端（big-endian）字节序。
+  ![avatar](./大端和小端.png)
+  ```C++
+  #include <iostream>
+  using namespace std;
+
+  void checkCPU ()
+  {
+      union MyUnion {
+          int a;
+          char c;
+      } test;
+      test.a = 1;
+      if (test.c == 1)  // union 中的成员变量的起始地址是相同的
+          cout << "little endian" <<endl;
+      else cout << "big endian" <<endl;
+  }
+
+  int main()
+  {
+      checkCPU();
+      return 0;
+  }
+  ```
+  整型 1 在小端字序中的存储：![avatar](./整型1在小端字序中的存储.png)
+  整型 1 在大端字序中的存储：![avatar](./整型1在大端字序中的存储.png)
+  > 参考：[interview.md union]()，[union介绍](https://www.cnblogs.com/jeakeven/p/5113508.html)，[union变量存储](https://www.cnblogs.com/zhangchaoyang/articles/2713658.html)
+
+</details>
+<details>
+  <summary>友元类和友元函数</summary>
+
+  - 友元函数是可以直接访问类的私有成员（包括 private 和 protected）的非成员函数。它是定义在类外的普通函数，它不属于任何类，但需要在类的定义中加以声明，声明时只需在友元的名称前加上关键字 `friend`。友元函数的声明可以放在类的私有部分，也可以放在公有部分，它们是没有区别的，都说明是该类的一个友元函数。
+  - 友元类的所有成员函数都是另一个类的友元函数，都可以访问另一个类中的隐藏信息。
+    - 以下语句说明 `class B` 是 `class A` 的友元类。
+    ```C++
+    class A {
+        ......
+    public:
+        friend class B;
+        ......
+    }
+    ```
+    - 友元关系不能被继承。
+    - 友元关系是单向的，不具有交换性。若 `clsss B` 是 `class A` 的友元，`class A`不一定是 `class B` 的友元，要看在类中是否有相应的声明。
+    - 友元关系不具有传递性。若 `class B`是 `class A` 的友元，`class C` 是 `class B` 的友元，`class C` 不一定是 `class A` 的友元，同样要看类中是否有相应的申明。
+  - 友元能够使得普通函数直接访问类的保护数据，避免了类成员函数的频繁调用，可以节约处理器开销，提高程序的效率，但这样会破坏类的封装性，这是友元的缺点。在现在cpu速度越来越快的今天我们并不推荐使用它。
+  > 参考：[C++ 友元函数和友元类用法详解](https://blog.csdn.net/fanyun_01/article/details/79122916)
+
+</details>
+<details>
+  <summary>decltype</summary>
+
+  - `decltype` 用于求表达式的类型。`decltype(expression)`。
+  ```C++
+  int i;
+  double t;
+  struct A { double x; };
+  const A* a = new A();
+  decltype(a) x1;  // x1 是 A*
+  decltype(i) x2;  // x2 是 int
+  decltype(a->x) x3;  //  x3 是 double
+  ```
+  - C++11 中， 当函数返回类型为 `auto` 时，`auto` 和 `decltype` 配合一起使用。
+  ```C++
+  #include <iostream>
+  using namespace std;
+  
+  struct A {
+      int i;
+      A(int ii) : i(ii) {}
+  };
+  
+  A operator + (int n, const A & a) {
+      return A(a.i + n);
+  }
+  
+  template <class T1, class T2>
+  // 这里告诉编译器，add 的返回值为 decltype(x + y) 类型的 ，C++11 中 函数返回值若为 auto，需要和 decltype 配合使用
+  auto add(T1 x, T2 y) -> decltype(x + y) { 
+      return x + y;
+  }
+
+  int main() {
+      auto d = add(100, 1.5);  // d 是 double 类型，d = 101.5
+      auto k = add(100, A(1));  // k 是 A 类型，因为表达式“100+A(1)”是A类型的
+      cout << d << endl;
+      cout << k.i << endl;
+      return 0;
+  }
+  ```
+  - C++14 中，当函数返回类型为 `auto` 时，则可以不用 `decltype`。
+  ```C++
+  auto add (int a, int b) {
+      int i = a + b;
+      return i;
+  }
+  ```
 </details>
 
 ## 网络
@@ -838,7 +1063,7 @@
 
 </details>
 <details>
-  <summary>socket 网络编程（自问）</summary>
+  <summary>socket 网络编程</summary>
   
   - `socket`：`socket` 函数用于创建套接字。
     - 函数原型：`SOCKET PASCAL FAR socket(int af, int type, int protocol)`。
@@ -1208,7 +1433,7 @@
 
 ## 操作系统
 <details>
-  <summary>为什么需要操作系统（自问）</summary>
+  <summary>为什么需要操作系统</summary>
   
   - **提供抽象**：操作系统可以隐藏硬件，呈现给程序良好、清晰、优雅、一致的抽象，将丑陋的硬件转变为美丽的抽象。
   - **资源管理**：操作系统可以记录哪个程序在使用什么资源，对资源请求进行分配，评估使用代价，并且未不同的程序和用户调节互相冲突的资源请求。
@@ -1216,7 +1441,7 @@
 
 </details>
 <details>
-  <summary>进程间通信（自问）</summary>
+  <summary>进程间通信</summary>
   
   - **消息传递**：提供 `send` 和 `recieve` 两个原语操作（原语一般是指由若干条指令组成的程序段，用来实现某个特定功能，在执行过程中不可被中断）。操作系统内核存有一组消息缓冲区，当发送进程想要发送消息给接收进程时，发送进程调用 `send`，`send` 陷入内核，将要发送的消息复制到内核中的消息缓冲区（队列形式）中，而接收进程 PCB（进程管理快）中有一个消息队列指针，指向内核中属于它的消息缓冲区，当接收进程想要接受数据的时候就调用 `recieve`，陷入内核，将消息缓冲区头部的数据取出，这样就完成了一个消息传递的过程。`send` 和 `recieve` 使用信号量实现。
   - **共享内存**：两个或多个进程可将自身的一块地址空间映射到同一块物理内存，当一个进程在此共享内存进行修改的时候，其他拥有此块共享内存的进程可以读取到修改的内容，进而实现了进程通信的功能，这里关键要解决互斥问题，可用解决读者-写者问题的思路解决。
@@ -1225,7 +1450,7 @@
 
 </details>
 <details>
-  <summary>同步-互斥问题（自问）</summary>
+  <summary>同步-互斥问题</summary>
   
   - 进程同步指的是系统中多个进程中发生的事情存在某种**时序关系**，需要相互合作，共同完成一项任务。具体的说，一个进程运行到某一点时，要求另一伙伴进程为他提供消息，在未获得消息之前，该进程进入阻塞态，获得消息之后被唤醒进入就绪态。
   - 进程之间的互斥是由于各个进程要求使用共享资源，而这些资源需要排他性使用，各进程之间**竞争**使用这些资源。
@@ -1236,7 +1461,7 @@
 
 </details>
 <details>
-  <summary>进程调度方法（自问）</summary>
+  <summary>进程调度方法</summary>
 
   - **先来先服务**：非抢占式算法，使用该算法，进程按照它们请求 CPU 的顺序使用 CPU，适用于批处理系统。
   - **最短作业优先**：非抢占式算法，使用该算法，需要与之进程的运行时间，选择运行时间最短的那个进程运行，适用于批处理系统。
@@ -1248,7 +1473,7 @@
 
 </details>
 <details>
-  <summary>线程调度方法（自问）</summary>
+  <summary>线程调度方法</summary>
   
   - **用户级线程调度**：内核不知道线程的存在，内核使用进程调度算法调度进程，然后可以在进程内定制线程的调度方法。
   - **内核级线程调度**：内核可以把线程当作进程，使用进程调度方法。
@@ -1326,7 +1551,7 @@
 
 </details>
 <details>
-  <summary>页面置换算法（自问）</summary>
+  <summary>页面置换算法</summary>
 
   - 当发生缺页中断时，操作系统必须在内存中选择一个页面将其换出内存，以便为即将调人的页面腾出空间。如果要换出的页面在内存驻留期间已经被修改过，就必须把它写回磁盘以更新该页面在磁盘上的副本； 如果该页面没有被修改过（如一个包含程序正文的页面），那么它在磁盘上的副本已经是最新的，不需要回写。直接用调入的页面覆盖被淘汰的页面就可以了。
   - **最优页面置换算法**：每个页面都可以用在该页面首次被访问前所要执行的指令数作为标记，最优页面置换算法规定应该置换标记最大的页面。问题是无法实现，操作系统无法知道各个页面下一次什么时候被访问。
@@ -1503,7 +1728,7 @@
   - 使用 Posix 线程 。需要 `#include <pthread.h>`
     - **创建线程**：`int pthread_create(pthread_t *tid, pthread_attr_t *attr, func *f, void *arg);`
     - **终止线程**：`void  pthread_exit(void *thread_return);`
-    - **回收线程**：`int pthread_join(pthread_t tid, void **thread_return);`。
+    - **回收线程**：`int pthread_join(pthread_t tid, void **thread_return);`
   - 使用 C++11 线程库。需要 `#include <thread>`
   > 参考：[深入理解计算机系统 12.3-基于线程的并发编程]()
 
@@ -1819,7 +2044,7 @@
   
 </details>
 <details>
-  <summary>设计模式的几项原则（自问）</summary>
+  <summary>设计模式的几项原则</summary>
 
   - **开放封闭原则**：对扩展开放，对修改关闭。在程序需要进行拓展的时候，不能去修改原有的代码。
   - **里氏代换原则**：任何基类可以出现的地方，子类一定可以出现。LS 里氏代换原则是对开闭原则的补充。实现开闭原则的关键步骤就是抽象化，而基类与子类的继承关系就是抽象化的具体实现，所以里氏代换原则是对实现抽象化的具体步骤的规范。
