@@ -867,7 +867,10 @@
 <details>
   <summary>左值，右值，左值引用，右值引用</summary>
 
-  - 
+  - **左值**：
+  - **右值**：
+  - **左值引用**：
+  - **右值引用**：
   > 参考：[]()
 
 </details>
@@ -978,7 +981,7 @@
   decltype(i) x2;  // x2 是 int
   decltype(a->x) x3;  //  x3 是 double
   ```
-  - C++11 中， 当函数返回类型为 `auto` 时，`auto` 和 `decltype` 配合一起使用。
+  - C++11 中， 当函数返回类型为 `auto` 时，`auto` 和 `decltype` 配合一起使用，使用 `decltype` 告知返回类型。
   ```C++
   #include <iostream>
   using namespace std;
@@ -993,7 +996,7 @@
   }
   
   template <class T1, class T2>
-  // 这里告诉编译器，add 的返回值为 decltype(x + y) 类型的 ，C++11 中 函数返回值若为 auto，需要和 decltype 配合使用
+  // 这里告诉编译器，add 的返回值为 decltype(x + y) 类型的 ，编译器将 add 实例化时，会自动推断出 x + y 的类型，C++11 中 函数返回值若为 auto，需要和 decltype 配合使用
   auto add(T1 x, T2 y) -> decltype(x + y) { 
       return x + y;
   }
@@ -1013,6 +1016,8 @@
       return i;
   }
   ```
+  > 参考：[C++11 auto 和 decltype 关键字](http://c.biancheng.net/view/438.html)
+
 </details>
 
 ## 网络
