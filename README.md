@@ -182,7 +182,7 @@
   <summary>C++11 部分特性</summary>
   
   - 使用 `nullptr` 代替 `NULL`，可区分空指针和0。
-  - 引入 `auto` 关键字，实现类型推导，但是 `auto` 不能用于函数传参，也不能用于推到数组类型。
+  - 引入 `auto` 关键字，实现类型推导，但是 `auto` 不能用于函数传参，也不能用于推导数组类型。
   - 引入基于范围的 `for` 循环。
   - 列表初始化。
   - C++11 之前，`>>` 一律被当做右移运算符来进行处理，而 C++11 开始，根据其应用场景进行判断。
@@ -224,14 +224,14 @@
 <details>
   <summary>为什么虚函数是动态绑定</summary>
   
-  - 当一个对象的指针需要调用一个它的虚函数的时候，首先它需要找到它的虚函数表，在虚函数表中找到该虚函数的地址，然后运行处于该地址上的函数，但问题是只有当对象实例化以后才拥有一个虚函数表，而实例化在运行阶段发生，不在编译阶段发生。举个例子，有一个父类 `class A` 和一个他的派生类 `class B`，`class A` 有一个虚函数 `virtual void func1();`，和一个非虚函数 `void func2();`，创建一个指针 `A* a = new B`， 在程序中写入 `a->func1();`，在编译阶段，编译器只知道 `a` 是一个 `class A` 类型的指针，但是此时 `a` 所指向的内存并没有存放虚函数表的地址，也就不知道虚函数的地址，所以**编译期间无法确定虚函数的函数地址**，但是如果在程序中写入 `a->func2();`，由于 `func2()` 不是虚函数，他的函数地址在编译阶段可以确定。所以虚函数是动态绑定，在运行期可确定，非虚函数是静态绑定，在编译器可确定。
+  - 当一个对象的指针需要调用一个它的虚函数的时候，首先它需要找到它的虚函数表，在虚函数表中找到该虚函数的地址，然后运行处于该地址上的函数，但问题是只有当对象实例化以后才拥有一个虚函数表指针，而实例化在运行阶段发生，不在编译阶段发生。举个例子，有一个父类 `class A` 和一个他的派生类 `class B`，`class A` 有一个虚函数 `virtual void func1();`，和一个非虚函数 `void func2();`，创建一个指针 `A* a = new B`， 在程序中写入 `a->func1();`，在编译阶段，编译器只知道 `a` 是一个 `class A` 类型的指针，但是此时 `a` 所指向的内存并没有存放虚函数表的地址，也就不知道虚函数的地址，所以**编译期间无法确定虚函数的函数地址**，但是如果在程序中写入 `a->func2();`，由于 `func2()` 不是虚函数，他的函数地址在编译阶段可以确定。所以虚函数是动态绑定，在运行期可确定，非虚函数是静态绑定，在编译器可确定。
   > 参考：[为什么虚函数在编译期间无法绑定](https://blog.csdn.net/qq_41786318/article/details/81979658)
 
 </details>
 <details>
   <summary>引用是否能实现动态绑定，为什么引用可以实现</summary>
   
-  - 可以，因为它们并不引发内存任何与类型有关的内存委托操作，会受到改变的，只有它们**所指向内存的大小和解释方式**，也就是说引用和指针不会影响内存里的内容，只会改变所指内存的大小，而虚函数表放在对象内存空间最上面的位置，所以一个指向派生类的基类指针的虚函数表还是使用派生类的虚函数表。比如有一个基类 `class Animal` 和一个派生类 `class Dog`，分析 `Animal* a = new Dog;`，`new Dog` 开辟一块 `class Dog` 类型大小的内存，并返回一个其地址给 `a`，而 `a` 所指内存的大小由 `Animal*` 决定，为 `class Animal` 的大小，过程中并没有改变原有内存的内容，只是改变了指针所指向的内存大小。
+  - 可以，因为引用和指针并不引发内存任何与类型有关的内存委托操作，会受到改变的，只有它们**所指向内存的大小和解释方式**，也就是说引用和指针不会影响内存里的内容，只会改变所指内存的大小，而虚函数表放在对象内存空间最上面的位置，所以一个指向派生类的基类指针的虚函数表还是使用派生类的虚函数表。比如有一个基类 `class Animal` 和一个派生类 `class Dog`，分析 `Animal* a = new Dog;`，`new Dog` 开辟一块 `class Dog` 类型大小的内存，并返回一个其地址给 `a`，而 `a` 所指内存的大小由 `Animal*` 决定，为 `class Animal` 的大小，过程中并没有改变原有内存的内容，只是改变了指针所指向的内存大小。
   ![avatar](./指针引用多态.png)
   - 如果只是单纯的向上转型，没有使用指针或引用，是不会发生多态的，因为基类和派生类之间的转型动作会改变虚函数表指针 `_vptr` 的指向。如有一个基类 `class A` 和一个派生类 `class B`，基类有一个虚函数 `virtual void t();`， 分析 `B b; A a = b;`，这里将 `b` 转型为 `class A` 类型，进行向上转型，转型过程中 `_vptr` 会改变，指向 `class A` 的虚函数表，调用 `a.t();`，其调用的是基类的版本，而不是派生类的版本，这也就不是多态了。
   > [浅谈为什么只有指针能够完成多态及动态转型的一个误区](https://www.cnblogs.com/fandingBlog/p/3918407.html)，[C++ 多态，为何只能通过指针或引用实现](https://blog.csdn.net/shichao1470/article/details/89893508#_2)
@@ -1985,7 +1985,6 @@
 <details>
   <summary>MySQL 索引为何失效</summary>
   
-  - 索引可以加速查询。
   - `LIKE` 以 `%` 开头，索引无效。
   - `or` 语句前后没有同时使用索引，索引失效。
   - 当全表扫描速度比索引速度快时，MySQL 会使用全表扫描，索引失效。
@@ -2498,7 +2497,126 @@
   <summary>Qt 问题</summary>
   
   - `Qt Designer` + `css` 实现 ui 部分，`C++`  实现逻辑部分。
-  
+  - **信号和槽原理**：信号和槽其实就是**对象之间的一种通信机制**。要求两个对象（一个对象之间也可以，但没必要，信号和槽主要用来对象之间的通信）中的函数建立映射关系，**前者被调用时后者也要被调用**（前者是信号，后者为信号对应的槽函数）。
+    - **直接调用**：可以直接在前者的函数中调用后者的函数，但是当前者对象不能获取后者对象的时候，那这种方法就实现不了了。
+    - **回调函数 + 映射表**：可以建立两个函数之间的映射关系，让前者被调用的时候，自动调用后者。创建一个**映射关系类**，包含一个 `map` 对象，他的 `key` 为字符串，可用来表示信号，他的 `value` 为函数指针，可用来表示槽函数，类中包含两个函数，一个 `connect` 函数，将一个字符串作为 `key`，一个函数指针作为 `value`，把这一对 `key-value` 添加到类中的 `map` 对象，用于将字符串和函数指针绑定，功能类似信号和槽机制中的 `connect`；还有一个 `invoke` 函数，用于调用字符串对应的函数，功能类似与信号和槽机制中的信号。这种方法感觉有**缺点**，，例子：可以在 `class B` 中使用全局对象 `Connections connection` 的 `connection.connect("hello", this->test());` 建立字符串 ”hello“ 与 `B::test();` 的绑定，然后在 `class A` 中的 `A::hi();` 中使用 `connection.invoke("hello")`，执行这个函数时，就会运行 `B::test();` 函数。
+    ```C++
+    class Connections 
+    {
+    public:
+        //按名称“建立映射关系”
+        void connect(const std::string &name, const std::function<void()> &callback) 
+        {
+            m_callbackMap[name] = callback;
+        }
+        //按名称“调用”
+        void invok(const std::string &name)
+        {
+            auto it = m_callbackMap.find(name);
+            //迭代器判断
+            if (it != m_callbackMap.end()) {
+                //迭代器有效的情况，直接调用
+                it->second();
+            }
+        }
+    private:
+        std::map<std::string, std::function<void()>> m_callbackMap;
+    };
+    ```
+    - **发布-订阅模式**：有博客说可以用发布-订阅模式来实现信号和槽机制，但是看了下代码，感觉还是不太对，信号和槽是将两个对象的两个函数绑定，而网上使用发布-订阅模式实现的机制其实是先将两个类的两个函数绑定，然后再将两个对象绑定。这样是会带来一些问题的，比如，有两个类 `class Tom` 和 `class Jerry`，`class Tom` 是发布者，`class Jerry` 是订阅者，`class Tom` 中的 `miao();` 和 `lai();` 分别绑定了 `class Jerry` 的 `onMiao();` 和 `onLai();`，创建四个对象 `Tom tom1`，`Tom tom2`，`Jerry jerry1`，`Jerry jerry2`，其中，`tom1` 绑定 `jerry1`，`tom2` 绑定 `jerry2`，发现两组发布者的 `miao()` 和 `lai()` 都会触发订阅者对应的槽函数，如果 `jerry2` 只想要 `tom2` 在 `miao()` 的时候进行 `onMiao()`，而不想在 `lai()` 的时候 `onLai()`，这就没法实现了，因为 `class Tom` 和 `class Jerry` 中这两个函数是绑定的，只要是这两个类的对象且这两个对象绑定，那么这两个对象中的 `lai()` 和 `onLai()` 就一定是绑定的。而信号和槽可以解决这个问题，`connect(&tom1, SIGNAL(miao()), &jerry1, SLOT(onMiao()));`，`connect(&tom1, SIGNAL(lai()), &jerry1, SLOT(onLai()));`，`connect(&tom2, SIGNAL(miao()), &jerry2, SLOT(onMiao()));`。
+    ```C++
+    #include <vector>
+    #include <algorithm>
+    #include <functional>
+    #include <iostream>
+
+    //Subject 事件或消息的主体。模板参数为观察者类型
+    template<typename ObserverType>
+    class Subject {
+    public:
+        //订阅
+        void subscibe(ObserverType *obs)
+        {
+            auto itor = std::find(m_observerList.begin(), m_observerList.end(), obs);
+            if (m_observerList.end() == itor) {
+                m_observerList.push_back(obs);
+            }
+        }
+        //取消订阅
+        void unSubscibe(ObserverType *obs)
+        {
+            m_observerList.erase(std::remove(m_observerList.begin(), m_observerList.end(), obs));
+        }
+        //发布。这里的模板参数为函数类型。
+        template <typename FuncType>
+        void publish(FuncType func)
+        {
+            for (auto obs: m_observerList)
+            {
+                //调用回调函数，将obs作为第一个参数传递
+                func(obs);
+            }
+        }
+    private:
+        std::vector<ObserverType *> m_observerList;
+    };
+
+    using std::cout;
+    using std::endl;
+
+    //CatObserver 接口 猫的观察者
+    class CatObserver {
+    public:
+        //猫叫事件
+        virtual void onMiaow() = 0;
+    public:
+        virtual ~CatObserver() {}
+    };
+
+    //Tom 继承于Subject模板类，模板参数为CatObserver。这样Tom就拥有了订阅、发布的功能。
+    class Tom : public Subject<CatObserver>
+    {
+    public:
+        void miaoW()
+        {
+            cout << "miao!" << endl;
+            //发布"猫叫"。
+            //这里取CatObserver类的成员函数指针onMiaow。而成员函数指针调用时，要传递一个对象的this指针才行的。
+            //所以用std::bind 和 std::placeholders::_1将第一个参数 绑定为 函数被调用时的第一个参数，也就是前面Subject::publish中的obs
+            publish(std::bind(&CatObserver::onMiaow, std::placeholders::_1));
+        }
+    };
+    //Jerry 继承于 CatObserver
+    class Jerry: public CatObserver
+    {
+    public:
+        //重写“猫叫事件”
+        void onMiaow() override
+        {
+            //发生 “猫叫”时 调用 逃跑
+            RunAway();
+        }
+        void RunAway()
+        {
+            cout << "cat coming, run!" << endl;
+        }
+    };
+    int main(int argc, char *argv[])
+    {
+        Tom tom;
+        Jerry jerry;
+
+        //拿jerry去订阅Tom的 猫叫事件
+        tom.subscibe(&jerry);
+
+        tom.miaoW();
+        return 0;
+    }
+    ```
+  - **事件系统**：
+
+  > 参考：[Qt实用技能4-认清信号槽的本质](https://zhuanlan.zhihu.com/p/75126932)
+
 </details>
 <details>
   <summary>设计模式问题</summary>
@@ -2542,7 +2660,6 @@
     - **异常安全函数的三个保证**：基本（basic）承诺：如果异常被抛出，程序内的任何事物仍然保持在有效状态下，没有任何对象或数据结构会因此而败坏，所有对象都处于一种内部前后一致的状态；强烈（strong）保证：如果异常被抛出，程序状态不改变，如果函数成功，就是完全成功，如果函数失败，程序会恢复到调用函数之前的状态；不抛掷（nothrow）保证：承诺绝对不抛出异常，因为它们总是能够完成它们原先承诺的功能。*异常安全函数应当提供以上三种保证的任意一个*。
     - **如何提供强烈保证**：使用 RAII 机制保证不泄资源，使用 copy and swap 策略保证数据不会败坏。使用 copy and swap 策略，即如果打算修改一个对象，先复制这个对象到一个副本，在副本上进行修改，当修改完成后，把副本和原对象在一个 nothrow 的 swap 内进行置换操作。如果不使用这个策略，当只修改了一部分对象内容，仍有一部分需要修改时，如果发生异常，那么后面修改对象的操作将不能继续，这样的对象是数据败坏的；而使用了 copy and swap 策略，修改操作都是在副本上进行的，如果中途抛出异常，改变的只有副本，而原对象还是保持调用函数之前的状态，不会数据败坏。
   - **错误码与异常**：
-  - **assert 与 异常**：
   - **C++ 标准的异常**
     - **std::exception**：该异常是所有标准 C++ 异常的父类。
     - **std::bad_alloc**：该异常可以通过 `new` 抛出。
@@ -2622,11 +2739,14 @@
 
 
 ## 自我介绍
-
 <details>
   <summary>自我介绍</summary>
   
-  
+  - 面试官好，我叫李崇，是南京理工大学控制工程的一名硕士研究生。
+  - 本科期间，曾参加中国机器人大赛，负责机器人的程序编写和调试，在比赛的准备过程中，充分锻炼了解决问题和团队合作的能力。
+  - 研究生期间，参与了某海上作战项目，负责航路规划模块，实现了一种航路规划算法，还开发了用于验证航路规划算法可行性的桌面软件。
+  - 我的自我介绍完毕，谢谢！
+
 </details>
 
 ## 其他
@@ -2635,5 +2755,26 @@
   
   
 </details>
+<details>
+  <summary>专业不是计算机相关专业，为什么选择计算机就业方向</summary>
+  
+
+</details>
+<details>
+  <summary>最近在看的书</summary>
+  
+  
+</details>
+<details>
+  <summary>对你提升最大的一本书</summary>
+  
+  
+</details>
+<details>
+  <summary>反问</summary>
+  
+  
+</details>
+
 
 
