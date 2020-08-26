@@ -699,7 +699,7 @@
   - **模板的非类型形参**
     - 模板的非类型形参也就是内置类型形参，如 `template<class T, int a> class B{};` 其中 `int a` 就是非类型的模板形参。
     - 非类型模板的**形参只能是整型，指针和引用**。像 `double`，`String`, `String **` 这样的类型是不允许的，但是 `double &`，`double *`，对象的引用或指针是正确的。
-    - 调用非类型模板形参的**实参必须是一个常量表达式**，即他必须能在编译时计算出结果。比如 `template <class T, int a> class A{};` 如果有 `int b`，这时 `A<int, b> m;` 将出错，因为 `b` 不是常量，如果是 `const int b`，这时  `A<int, b> m;` 就是正确的，因为这时 `b` 是常量。
+    - 调用非类型模板形参的**实参必须是一个常量表达式**，即他必须能在编译时计算出结果。比如 `template <class T, int a> class A{};` 如果有 `int b`，这时 `A<int, b> m;` 将出错，因为 `b` 不是常量，如果是 `const int b`，这时 `A<int, b> m;` 就是正确的，因为这时 `b` 是常量。
   - **类模板的默认模板类型形参**
     - 可以为类模板的类型形参提供默认值，但不能为函数模板的类型形参提供默认值。函数模板和类模板都可以为模板的非类型形参提供默认值。
     - 类模板的类型形参默认值形式为：`template<class T1, class T2=int> class A{};` 为第二个模板类型形参T2提供int型的默认值。
@@ -1118,7 +1118,7 @@
   - `socket`：`socket` 函数用于创建套接字。
     - 函数原型：`SOCKET PASCAL FAR socket(int af, int type, int protocol)`。
     - `af`：指定通信发生的区域，`AF_UNIX`，`AX_INET`，`AF_INET6`，`AF_UNIX` 为 UNIX 本地通信，`AX_INET` 是使用 IPV4 通信，`AF_INET6` 是使用 IPV6 通信。
-    - `type`：  描述要建立的套接字类型：`SOCK_STREAM`，`SOCK_DGRAM`，`SOCK_RAW`，`SOCK_STREAM` 是 流式套接字，`SOCK_DGRAM` 是 数据报式套接字，`SOCK_RAW` 是���������始式套接字。
+    - `type`：  描述要建立的套接字类型：`SOCK_STREAM`，`SOCK_DGRAM`，`SOCK_RAW`，`SOCK_STREAM` 是 流式套接字，`SOCK_DGRAM` 是 数据报式套接字，`SOCK_RAW` 是原始套接字。
     - `protocol`：说明该套接字使用的特定协议，选择 TCP 或是 UDP。
   - `bind`：将套接字地址（包括本地主机地址和本地端口地址）与所创建的套接字绑定起来。 
     - 函数原型：`int PASCAL FAR bind(SOCKET s, const struct sockaddr FAR * name, int namelen)`。
@@ -1138,10 +1138,6 @@
   - 还差两张 socket 通信原理的图没画，一个 TCP 的，一个 UDP 的。
   > 参考：[socket 技术详解](https://www.cnblogs.com/fengff/p/10984251.html)，[socket 通信中 select 函数的使用和解释](https://www.cnblogs.com/gangzilife/p/9766292.html)，[IO 多路复用](https://www.jianshu.com/p/dd5b6893bef7)
   
-</details>
-<details>
-  <summary>通信光缆被挖掘机挖断了，现在建立好的TCP的连接变成啥样，有进行四次挥手嘛 ：逐渐超时被动关闭</summary>
-
 </details>
 <details>
   <summary>TCP 三次握手</summary>
@@ -1270,6 +1266,7 @@
     - 在目的主机的 HTTP 服务器从 TCP 套接字读取 HTTP GET 报文，生成一个 HTTP 响应报文，将请求的 Web 页内容放入到 HTTP 响应体中，并将该报文发送进 TCP 套接字中。
     - 包含 HTTP 回答报文的数据报通过转发最终到达用户设备，用户设备的 Web 浏览器程序从套接字读取 HTTP 相应，从 HTTP 响应中抽取 Web 网页的 html，最终显示出网页。
   > 参考：[计算机网络 5.7-回顾：Web 页面请求的历程]()
+
 </details>
 <details>
   <summary>对路由协议的了解与介绍。内部网关协议 RIP、OSPF，和外部网关协议 BGP、EGP</summary>
@@ -2490,7 +2487,7 @@
   - **Dijkstra 算法**：
   - **稀疏 A 星算法**：
   -  **算法程序中类之间的关系**：
-  - **算法模块是怎么提供给别人的**：应当提供一个 `namespace::function(argv, argv,...)` 形式的函数；还有三个类：点类 `namespace::Point`，多边形类 `namespace::Polygon`，矩形类 `namespace::Rectangle`。
+  - **算法模块是怎么提供给别人的**：提供一个 `namespace::function(argv, argv,...)` 形式的函数；还有三个类：点类 `namespace::Point`，多边形类 `namespace::Polygon`，矩形类 `namespace::Rectangle`。
   
 </details>
 <details>
@@ -2619,11 +2616,6 @@
 
 </details>
 <details>
-  <summary>设计模式问题</summary>
-  
-  - **Qt 程序中类之间的关系**：
-</details>
-<details>
   <summary>通信问题</summary>
   
   - 项目中使用 udp 进行通信。
@@ -2643,7 +2635,7 @@
   
   - **哪些地方得用多线程**：Qt 种使用多线程，一般就是为了不会有其他过程阻塞 ui 主线程，导致 ui 卡着不动。个人觉得 Qt 中应该不能有太多同时存在的线程，因为这样会分掉 ui 主线程的时间片，导致 ui 界面卡顿。项目中，ui 为一个线程，算法程序为一个线程，还有其他耗时比较长的地方都应该为一个线程。udp 通信不需要为一个线程，udp 发送数据耗时不长，udp 接收数据不是使用轮询而是信号和槽机制，每当有数据报到来时，`QUdpsocket` 都会发射一个 `readyRead()` 信号，所以 udp 通信不需要为一个线程。
   - **线程间通信**：可以使用信号传递小数据，但最好不要用信号传递大数据，所以线程间通信使用全局变量。
-  - **Qt 中线程操作**：有两种使用线程的方法，一种是继承 
+  - **Qt 中线程操作**：有两种使用线程的方法，一种是继承
     
 </details> 
 <details>
@@ -2685,26 +2677,15 @@
 
 </details>
 <details>
-  <summary>测试问题</summary>
-  
-  - 为保证算法部分的代码 bug-free，需要提供测试。
-  - 
-  > 参考：[]()
-
-</details>
-<details>
   <summary>项目中遇到的困难</summary>
   
   - 项目经常增加需求，由于代码的扩展性不好，经常重写代码。为解决此问题，画出程序的 UML 图，分析类之间，函数之间，类与函数之间的关系，并进行重构。
-  - 项目中的边界情况很多，很难考虑全面。为解决此问题，进行单元测试，分析测试结果。
   > 参考：[]()
   
 </details>
 <details>
   <summary>电机控制</summary>
    
-  - **编码器测速**：
-  - **PID 调节**：
 </details>
 <details>
   <summary>舵机控制</summary>
