@@ -1,4 +1,334 @@
 ## C++
+
+### C++ 指针和引用
+<details>
+  <summary>指针和引用的区别</summary>
+  
+  - 指针是一个变量，这个变量存储的是一个地址；引用只是原变量的一个别名。
+  - 指针占有一块自己的内存空间；而引用和原变量的内存空间是一样的。
+  - 使用 `sizeof` 看一个指针的大小是4；而引用则是被引用对象的大小。
+  - 指针可以初始化为空值；而引用不可以为空，必须被初始化，且必须是对一个已存在对象的引用。
+  - 指针可以有多级；引用只有一级。
+  - 指针使用 `++` 是指向下一块地址；而引用使用 `++` 就是原变量进行 `++` 操作。
+  - 有 `const` 指针，`A* const a;` 是正确的，指针是一个变量，可以有 `const` 属性；没有 `const` 引用，`A b; A& const a = b;;` 是错误的，因为引用自身不是一个对象，是一个别名，本来就是不能修改的，就无所谓 `const` 属性一说，如果把 `const` 放在 `A&` 前面，那么修饰的就是引用所指向的那个对象了；而对象是有 `const` 属性的，自然是没问题的。
+  - 指针在使用中可以指向其它对象；但是引用只能是一个对象的引用，不能被改变。
+  - 如果返回动态内存分配的对象或者内存，必须使用指针；引用可能引起内存泄露。
+  - 指针需要解引用才能对被指对象进行操作，引用不需要。
+  > 参考：[C++面试宝典导读](https://www.nowcoder.com/tutorial/93/a34ed23d58b84da3a707c70371f59c21)，[引用没有const，指针有const](https://www.zhihu.com/question/291649692)
+
+</details>
+<details>
+  <summary>C++ 智能指针</summary>
+
+  - 用户开辟一块内存，使用以后容易忘记释放，会造成内存泄漏，如果释放了内存，但是没有将指针置空，那么指针将变成野指针。为了解决这两个问题，引入智能指针，**以对象管理资源**，获得资源后立刻放入管理对象，管理对象运用析构函数确保资源被释放。
+  - **auto_ptr**：`auto_ptr` 在拷贝和赋值过程中，会直接剥夺原对象对内存的控制权，转交给新对象，然后将原对象置为 `nullptr`，如果后面再次访问原对象就会出错。C++11 已移除 `auto_ptr`。
+  - **unique_ptr**：`unique_ptr` 直接禁用拷贝和赋值，任何调用他们的行为都将在编译期间报错。
+  - **shared_ptr**：`shared_ptr` 既不会直接剥夺原对象对内存的控制权，也允许进行拷贝和赋值，因为它引入了**引用计数**（用指针记录），`shared_ptr` 在内部为资源维护了一个引用计数，用来记录该资源被几个 `shared_ptr` 对象共享。当有一个对象加入管理该资源时，资源的计数加一；在对象销毁时，资源的计数减一，当资源的计数为 0 时，需要释放该资源，当资源的计数不为 0 时，说明还有其他的对象在管理此资源，那么就不能释放该资源。但是 `shared_ptr` 存在由引用计数导致的**循环引用问题**，本来还有线程安全问题，但是 C++ 库针对这一点，将 `shared_ptr` 中的引用计数操作改成原子操作，所以 `shared_ptr` 是线程安全的，而循环引用问题通过引入 `weak_ptr` 解决。
+  - **weak_ptr**：`weak_ptr` 为解决 `shared_ptr` 的循环引用问题而设计，它本身不能直接定义为管理原始指针的对象，只能将 `shared_ptr` 对象赋值给 `weak_ptr`，同时也不能将 `weak_ptr` 对象直接赋值给 `shared_ptr` 类型的对象，最重要的一点是赋值给它不会增加引用计数。举个例子，如下代码中，`ptr_a` 和 `m_ptr_b` 指向同一个资源，`ptr_b` 和 `m_ptr_a` 指向同一个资源，当离开局部作用域后，`ptr_a` 和 `ptr_b` 被析构，两个资源各自的引用计数减一，但要注意的是析构的是 `ptr_a` 和 `ptr_b` ，是智能指针，而不是他们管理的资源，所以`m_ptr_a` 和 `m_ptr_b` 不会被析构，由于此时 `m_ptr_a` 和 `m_ptr_b` 还管理着这两个资源，所以直到离开作用域都不会释放该资源。看图理解。当引入 `weak_ptr` 后，由于 `weak_ptr` 不会增加引用计数，在进行完 `ptr_a->set_ptr(ptr_b);ptr_b->set_ptr(ptr_a);` 操作后，两个资源的引用计数还是一，所以当 `ptr_a` 和 `ptr_b` 析构后，资源的引用计数变为 0，他们管理的资源也就可以被析构了。
+  ```C++
+  // 循环引用问题
+  #include <iostream>
+  #include <memory>
+  using namespace std;
+
+  class CB;
+  class CA
+  {
+  public:
+      void set_ptr(shared_ptr<CB>& ptr) { m_ptr_b = ptr; }
+  private:
+      shared_ptr<CB> m_ptr_b;
+  };
+
+  class CB
+  {
+  public:
+      void set_ptr(shared_ptr<CA>& ptr) { m_ptr_a = ptr; }
+  private:
+      shared_ptr<CA> m_ptr_a;
+  };
+
+  int main() {
+      {
+          shared_ptr<CA> ptr_a(new CA()); 
+          shared_ptr<CB> ptr_b(new CB());
+
+          ptr_a->set_ptr(ptr_b);
+          ptr_b->set_ptr(ptr_a);
+      }
+
+      return 0;
+  }
+  ```
+  ![avatar](./循环引用.png)
+  ```C++
+    // 引入 weak_ptr 解决循环引用问题
+  #include <iostream>
+  #include <memory>
+  using namespace std;
+
+  class CB;
+  class CA
+  {
+  public:
+      void set_ptr(shared_ptr<CB>& ptr) { m_ptr_b = ptr; }
+  private:
+      weak_ptr<CB> m_ptr_b; // 改成 weak_ptr
+  };
+
+  class CB
+  {
+  public:
+      void set_ptr(shared_ptr<CA>& ptr) { m_ptr_a = ptr; }
+  private:
+      weak_ptr<CA> m_ptr_a; // 改成 weak_ptr
+  };
+
+  int main() {
+      {
+          shared_ptr<CA> ptr_a(new CA()); 
+          shared_ptr<CB> ptr_b(new CB());
+
+          ptr_a->set_ptr(ptr_b);
+          ptr_b->set_ptr(ptr_a);
+      }
+
+      return 0;
+  }
+  ```
+  > 参考：[C++智能指针](https://blog.csdn.net/Ferlan/article/details/86513679)，[智能指针（三）：weak_ptr 浅析](https://blog.csdn.net/albertsh/article/details/82286999)
+
+</details>
+<details>
+  <summary>左值，右值，左值引用，右值引用</summary>
+
+  - **左值**：左值是指表达式结束后依然存在的持久化对象。如 `int x = 1;`，其中 x 是左值。
+  - **右值**：右值是指表达式结束时就不再存在的临时对象。如 `int x = 1;`，其中 1 是右值。
+  - **左值引用**：用于对左值的引用，通过 `&` 来声明。在定义左值引用时，`=` 右边的要求是一个可修改的左值。
+    ```C++
+    #include <stdio.h>
+
+    int main()
+    {
+        const int x = 5;
+        int y = 1;
+        int z = 1;
+        int & tmp1 = x;  // ERROR: x 不是一个可修改的左值
+        int & tmp2 = 5;  // ERROR: 5 是一个右值
+        int & tmp3 = y + z;  // ERROR: y + z 是一个右值
+        return 0;
+    }
+    ```
+    - **左值引用的作用**：用于 rangeFor 循环；避免复制大的对象；参与函数中参数传递。
+  - **右值引用**：用于对右值的引用，通过 `&&` 来声明。在定义右值引用时，`=` 右边要求是一个右值。
+    ```C++
+    #include <stdio.h>
+
+    int main()
+    {
+        int && x = 5;
+        printf("x = %d\n", x);
+        return 0;
+    } 
+    ```
+    - **右值引用的作用**：可以通过右值引用，充分使用临时变量，或者即将不使用的变量即右值的资源，减少不必要的拷贝，提高效率。
+    - **移动构造函数**：有些时候我们需要一个对象的副本，使用复制构造；而有些时候我们有可能只是想将这个对象换个地方，这时候便可以使用移动构造函数。在移动构造函数中使用**浅拷贝**，避免深拷贝需要重新开辟新的堆空间带来的开销，同时在移动构造函数中将源对象中的指针置为 `nullptr`，避免源对象析构时释放堆上的内存。C++11 引入移动语义：**源对象资源的控制权全部交给目标对象**。
+    ![avatar](./移动构造函数.png)
+    ```C++
+    A(A && a): //  移动构造函数，没有 const
+    p(a.p) // 浅拷贝
+    {
+        a.p = nullptr; // 将源对象中的资源设置为 nullptr，这样的话 delete 源对象的时候，源对象释放的 p 是一个 nullptr，不会影响现在的对象
+    }
+
+    A & operator=(A && a) // 移动赋值运算符
+    {
+        if(&a == this) return *this;
+
+        p = a.p;
+        a.p = nullptr;
+        return *this;
+    }
+    ```
+    - **std::move()**：`std::move()` 的作用是将传入的值转换为右值。一般结合移动构造函数和移动赋值构造函数使用，`std::move()` 将对象转换为右值，并作为移动构造函数或者移动赋值构造函数的参数。
+  > 参考：[C++ 右值引用（std::move）](https://zhuanlan.zhihu.com/p/94588204)，[C/C++-左值、右值及引用](https://www.cnblogs.com/Bylight/p/10530274.html)，[移动构造函数](https://blog.csdn.net/sinat_25394043/article/details/78728504)，[C++ 的坑-移动构造函数和移动赋值运算符](https://zhuanlan.zhihu.com/p/44156491)
+
+</details>
+<details>
+  <summary>NULL，0，nullptr</summary>
+  
+  - C 语言中的 `NULL` 通常被定义为 `#define NULL ((void*)0)`，也就是说 `NULL` 实际上是一个 `void*` 的指针，然后吧 `void*` 指针赋值给其他类型的指针的时候，隐式转换成相应的类型。但是 C++ 是强类型的，`void*` 不能隐式转换为其他类型的指针，需要显式转换。当 C++ 中 `NULL` 定义为  `((void*)0)` 的时候，指针初始化使用 `NULL` 的时候可能需要显示转换类型，如 `int* p = (int*)NULL`。
+  - 为了解决 C++ 中使用 `NULL` 进行赋值的兽需显式转换的问题，提出用 0 代替 ((void*)0)，一般定义为 `#define NULL 0`，0 代表指向内存地址为 0 的内存，这样就不需要进行显式转换了，因为是直接把一块内存地址给指针，但使用的时候需要注意当 `NULL` 作为函数参数的时候可能会出问题，如有两个函数，`void func(int a);` 和 `void func(int* b)`，其中一个是另一个的重载版本，当使用 `NULL` 作为参数调用 `func()` 的时候，调用的是 `void func(int a);` 的版本，而我们实际上是想调用 `void func(int* b);`的，所以尽量不适用 NULL 作为指针。
+  - 为解决 C++ 中 `NULL` 的问题，在 C++11 中用 `nullptr` 代替 `NULL`，`nullptr` 代表一个空指针，既不是 `(void*)0)` 的宏定义，也不是 0 的宏定义。将`nullptr` 赋予指针时不需要进行类型转换，在作为参数传递的时候也不用担心重载问题，作为参数时会识别为指针而不是 `int` 类型。
+  > 参考：[史上最明白的 NULL、0、nullptr 区别分析](https://www.cnblogs.com/porter/p/3611718.html)
+
+</details>
+<details>
+  <summary>野指针</summary>
+  
+  - 野指针，就是指针指向的位置是未知的，随机的。
+  - **野指针成因**
+    - **指针定义时没有初始化**，指针在被定义的时候，如果程序不对其进行初始化的话，它会随机指向一个区域，但是全局指针和静态指针会默认初始化指向 `nullptr`。
+    - **指针被释放时没有置空**，当指针指向的空间使用 `free` 或 `delete` 释放后，如果程序员没有对其进行置空（指向 `nullptr` ）或者其他赋值操作的话，那么当前啊所指向的内存空间的值就是未知的，那么该指针为一个野指针。
+    - **指针操作超越变量作用域**，假定一个函数返回值为指针类型，在函数内创建一个变量，并返回指向该变量的指针，因为局部变量存放在栈中，函数结束时栈弹出该变量的值，那么原来存放该局部变量的内存的当前值是未知的，所以返回的指针是一个野指针。
+  - **如何避免野指针**
+    - 定义指针的时候记得初始化，可以置为 `nullptr`。
+    - 使用 `free` 和 `delete` 释放完指针指向的内存后，记得将指针置为 `nullptr`。
+  > 参考：[野指针（概念，产生原因，危害，避免方法）](https://blog.csdn.net/l477918269/article/details/89949858)
+
+</details>
+
+### C++ 内存管理
+<details>
+  <summary>堆和栈的区别</summary>
+
+  - **申请方式**：stack 由系统自动分配；heap 需要程序员自己申请，并指明大小。
+  - **申请后系统的响应**：申请栈上的空间时，只要栈的剩余空间大于所申请空间，系统将为程序提供内存，否则将报异常提示栈溢出；申请堆上的空间时，首先应该知道操作系统有一个记录空闲内存地址的链表，当系统收到程序的申请时，会遍历该链表，寻找第一个空间大于所申请空间的堆结点，然后将该结点从空闲结点链表中删除，并将该结点的空间分配给程序，另外，对于大多数系统，会在这块内存空间中的首地址处记录本次分配的大小，这样，代码中的 `delete` 语句才能正确的释放本内存空间。另外，由于找到的堆结点的大小不一定正好等于申请的大小，系统会自动的将多余的那部分重新放入空闲链表中。
+  - **申请大小的限制**：栈是向低地址扩展的数据结构，是一块连续的内存的区域，栈顶的地址和栈的最大容量是系统预先规定好的，在 Windows 下，**栈的大小是 1M**，如果申请的空间超过栈的剩余空间时，将提示 overflow；堆是向高地址扩展的数据结构，是不连续的内存区域，这是由于系统是用链表来存储的空闲内存地址的，自然是不连续的，而链表的遍历方向是由低地址向高地址，堆的大小受限于计算机系统中有效的虚拟内存，32位 Windows 系统中，一个进程空间大小为 4G，其中进程的高位 2G 留给内核，低于 2G 留给用户，所以进程中的**堆的大小小于 2G**，进程的堆获得的空间比较灵活，也比较大。
+  - **申请效率**：栈由系统自动分配，速度较快；但程序员是无法控制的；堆是由new分配的内存，一般速度比较慢，而且容易产生内存碎片。
+  - **堆和栈中的存储内容**：栈中一般存放返回地址，局部变量，函数参数等；存放在堆中的一块数据一般会在头部存放该数据块的大小，堆中的具体内容由程序员决定。
+  > 参考：[堆和栈的区别](https://zhuanlan.zhihu.com/p/78478567)，[进程空间分配和堆栈大小](https://www.cnblogs.com/ladawn/p/8449399.html)
+
+</details>
+<details>
+  <summary>对象复用的了解，零拷贝的了解</summary>
+
+  - 对象复用一般指继承和复合。public 继承塑膜出 is-a 关系，private 继承塑膜出根据某物实现关系；复合可以塑膜出 has-a 和根据某物实现关系。
+  - 零拷贝主要的任务是避免CPU将数据从一块存储拷贝到另一块存储。零拷贝技术常见于linux中，例如用户空间到内核空间的拷贝，可以采用零拷贝技术，通过 mmap，直接将内核空间的数据通过映射的方法映射到用户空间，即物理上共用这段数据。
+  - 以上答案不确定是否正确。
+  >  参考：[interview.md 对象复用，零拷贝]()
+
+</details>
+<details>
+  <summary>C++ 内存管理</summary>
+
+  - 代码段：包括只读存储区和文本区，其中只读存储区存储字符串常量，文本区存储程序的机器代码。
+  - DATA 段（全局初始化区）：存储程序中已初始化的全局变量和静态变量。**DATA 段 + BSS 段 = 静态存储区**。
+  - BSS 段（全局未初始化区）：存储未初始化的全局变量和静态变量（局部+全局），以及所有被初始化为 0 的全局变量和静态变量。**BBS 段在程序执行之前会被系统自动清 0，所以未初始化的全局变量和静态变量在程序执行之前已经为 0**。
+  - 堆区：调用 new/malloc 函数时在堆区动态分配内存，同时需要调用 delete/free 来手动释放申请的内存。
+  - 映射区：存储动态链接库以及调用 mmap 函数进行的文件映射。
+  - 栈区：使用栈空间存储函数的返回地址、参数、局部变量、返回值。
+  > 参考：[C++面试宝典导读](https://www.nowcoder.com/tutorial/93/8f140fa03c084299a77459dc4be31c95)
+
+</details>
+<details>
+  <summary>结构体内存对齐方式和为什么要进行内存对齐</summary>
+
+  - 给定结构体里每个变量一个对齐标准（根据规则，可能是宏指定的也可能是变量的大小），该变量的地址必须是该标准的整数倍。
+  - **数据成员对齐规则**：结构体的数据成员，第一个数据成员放在 offset 为 0 的地方（offset 位置由结构体的整体对齐决定），以后每个数据成员的对齐按照 `#pragma pack` 指定的数值和这个数据成员自身长度中，比较小的那个进行。
+  - **结构体的整体对齐规则**：在数据成员完成各自对齐之后，结构体本身也要进行对齐，对齐将按照 `#pragma pack` 指定的数值和结构最大数据成员长度中，比较小的那个进行。
+  - **结构体作为成员**：如果一个结构里有某些结构体成员，则结构体成员要从其内部最大元素大小的整数倍地址开始存储。
+  - **为什么要内存对齐**：因为每次 CPU 从内存中取数据，都是取总线宽度大小的数据，而起始地址得是总线宽度的整数倍（不确定），内存对齐有助于提升读取效率。（不懂）
+  ```C++
+  #include <iostream>
+  using namespace std;
+
+  #pragma pack (1) // 指定按1对齐
+  struct struct01 {
+      int i; // 长度4 > 1，按 1 对齐
+      short us; // 长度 2 > 1，按 1 对齐
+      char b; // 长度1 = 1，按 1 对齐
+  };
+  #pragma pack ()
+
+  #pragma pack (2) // 指定按2对齐
+  struct struct02 {
+      int i; // 长度4 > 2，按 2 对齐
+      short us; // 长度2 = 2，按 2 对齐
+      char b; // 长度1 < 2，按 1 对齐
+      char d; // 长度1 < 2，按 1 对齐
+  };
+  #pragma pack ()
+
+  // 默认对齐
+  struct struct03
+  {
+      int i; // 长度4 < 8，按 4 对齐
+      short us; // 长度2 < 8，按 2 对齐
+      char b; // 长度1 < 8，按 1 对齐
+  } ;
+
+  int main(){
+      struct01 s1;
+      struct02 s2;
+      struct03 s3;
+
+      cout << "sizeof(struct01): " << sizeof(struct01) << endl; // 输出 “sizeof(struct01): 7”
+      cout << "sizeof(struct02): " << sizeof(struct02) << endl; // 输出 “sizeof(struct02): 8”
+      cout << "sizeof(struct03): " << sizeof(struct03) << endl; // 输出 “sizeof(struct03): 8”
+
+      cout << "s1 i address: " << reinterpret_cast<intptr_t>(&(s1.i)) << endl; // 输出 “s1 i address: 6422041”
+      cout << "s1 us address: " << reinterpret_cast<intptr_t>(&(s1.us)) << endl; // 输出 “s1 us address: 6422045”
+      cout << "s1 b address: " << reinterpret_cast<intptr_t>(&(s1.b)) << endl; // 输出 “s1 b address: 6422047”
+      cout << "s2 i address: " << reinterpret_cast<intptr_t>(&(s2.i)) << endl; // 输出 “s2 i address: 6422032”
+      cout << "s2 us address: " << reinterpret_cast<intptr_t>(&(s2.us)) << endl; // 输出 “s2 us address: 6422036”
+      cout << "s2 b address: " << reinterpret_cast<intptr_t>(&(s2.b)) << endl; // 输出 “s2 b address: 6422038”
+      cout << "s2 d address: " << reinterpret_cast<intptr_t>(&(s2.d)) << endl; // 输出 “s2 d address: 6422039”
+      cout << "s3 i address: " << reinterpret_cast<intptr_t>(&(s3.i)) << endl; // 输出 “s3 i address: 6422024”
+      cout << "s3 us address: " << reinterpret_cast<intptr_t>(&(s3.us)) << endl; // 输出 “s3 us address: 6422028”
+      cout << "s3 b address: " << reinterpret_cast<intptr_t>(&(s3.b)) << endl; // 输出 “s3 b address: 6422030”
+
+      return 0;
+  }
+  ```
+  > 参考：[C++ 面试题之结构体内存对齐计算问题总结大全](https://www.jb51.net/article/120329.htm)
+
+</details>
+<details>
+  <summary>内存泄露的定义，如何检测与避免</summary>
+
+  - 内存泄漏指的是在程序里动态申请的内存在使用完后，没有进行释放，导致这部分内存没有被系统回收，久而久之，可能导致系统可用内存越来越少。
+  - 内存泄漏的可能成因
+    - 在一个程序块内没有成对使用 new/delete。
+    - 在类的构造函数与析构函数中没有匹配地调用 new/delete。
+    - 在释放对象数组时，使用的是 delete，而没有使用 delete []。
+    - 基类的析构函数为非虚函数，使用一个基类指针的 delete 删除一个派生类对象。
+  - 检测：利用内存检查工具。
+  - 如何避免内存泄漏
+    - 不要手动管理内存，可以尝试在适用的情况下使用智能指针。
+    - 使用 string 而不是 char*，string 类在内部处理所有内存管理。
+    - 在C++中避免内存泄漏的最好方法是尽可能少地在程序级别上进行 new 和 delete 调用。任何需要动态内存的东西都应该隐藏在一个 RAII 对象中，当它超出范围时释放内存。RAII 在构造函数中分配内存并在析构函数中释放内存，这样当变量离开当前范围时，内存就可以被释放。
+    - 培养良好的编码习惯，在涉及内存的程序段中，检测内存是否发生泄漏。
+  > [面试问题之 C++ 语言：如何避免内存泄漏](https://www.cnblogs.com/yichengming/p/11466636.html)，[C++中避免内存泄露常见的解决方式](https://www.cnblogs.com/mfrbuaa/p/4265483.html)
+
+</details>
+<details>
+  <summary>内存泄漏和内存溢出</summary>
+
+  - 内存泄漏指的是在程序里动态申请的内存在使用完后，没有进行释放，导致这部分内存没有被系统回收，久而久之，可能导致系统可用内存越来越少。发生在堆上。
+  - 内存溢出指的是用户的实际的数据长度超过了可用的内存空间大小，导致覆盖了其他正常数据。一般发生在栈上。
+  > 参考：[内存泄漏和内存溢出有啥区别](https://www.zhihu.com/question/40560123)
+
+</details>
+<details>
+  <summary>内存检查工具的了解</summary>
+
+  - Windows 下 vs 可用 CRT
+  - LInux 下可用 valgrind
+  > 参考：[C++ 内存泄露检查工具](https://blog.csdn.net/ttomqq/article/details/81937561)，[C/C++ 内存泄漏及检测](https://www.cnblogs.com/skynet/archive/2011/02/20/1959162.html)  
+
+</details>
+<details> 
+  <summary>int 类型的变量不赋予默认值，那么它的值是什么</summary>
+  
+  - 如果该变量处于静态存储区，即全局变量和静态变量存储的区域，那么变量会被默认初始化，其值置为0。
+  - 如果该变量不在静态存储区，那么变量不会被初始化，其值为随机值。
+  - 以上适用于所有内置类型的变量。
+  > 参考：[C++ Primer 中“内置类型的默认初始化到底指什么](https://zhidao.baidu.com/question/745125691050893132.html)
+
+</details>
+
+### C++ 关键字
+<details>
+  <summary>struct 和 class 的区别</summary>
+
+  - **默认继承权**：class 默认 private 继承，struct 默认 public 继承。
+  - **成员默认访问权限**：class 的成员默认是 private 权限，struct 默认是 public 权限。
+  - C++ 中 struct 能包含成员函数，有自己的构造函数，可以有析构函数，支持继承、多态，支持private、protected、public关键字。
+  - class 可以继承自struct修饰的类；同时，struct 也可以继承自 class 修饰的类。当 class 修饰的类作为父类，struct 修饰的类作为子类时，默认继承是 private 还是 public 取决于子类而不是父类，这里由于是子类是 struct 修饰的，所以默认继承是 public；同理，当 struct 修饰的类作为父类，class 修饰的类作为子类时，默认继承是 private。
+  > 参考：[struct 和 class 的区别](https://www.cnblogs.com/ZhenXin0101/p/11451694.html)
+
+</details>
 <details>
   <summary>malloc / free 与 new / delete 之间的区别</summary>
   
@@ -13,6 +343,35 @@
   
 </details>
 <details>
+  <summary>const 用法</summary>
+
+  - `const` 修饰变量，说明变量不可以被改变。
+  - `const` 修饰指针，分为指向常量的指针（pointer to const）和常量指针（const pointer）。如 `const int* a;` 是指向常量的指针，`int* const b;` 是常量指针。
+  - `const` 修饰引用，只有指向常量的引用，没有常量引用，因为引用只是别名不是变量，没有常量属性那么一说。如 `int a; const int& b = a;` 是指向常量的引用。
+  - `const` 修饰成员函数，说明该成员函数不能修改成员变量。被修饰的函数称为 `const` 成员函数。
+  - `const` 修饰类对象，则该类称为常对象，该对象只能调用类的 `const` 成员（`cosnt` 成员变量和 `const` 成员函数），没有被 `const` 修饰的对象则可以使用所有的成员，不管是不是 `const` 成员。
+  - 不能同时使用 `static` 和 `const` 修饰类的成员函数，因为在调用非 `static` 成员函数时，实际上会隐式传递一个 `this` 指针给成员函数，而 `cosnt` 成员函数则会隐式调用一个经 `cosnt` 修饰的 `this` 指针以保证他不会改变对象的内容，而由于 `static` 成员函数是属于整个类共享的，他是不需要 `this` 指针作为参数的，所以 `cosnt` 和 `static` 同时修饰一个成员函数会产生冲突。
+  > 参考：[C++ const 关键字小结](https://www.runoob.com/w3cnote/cpp-const-keyword.html)
+
+</details>
+<details>
+  <summary>static 用法</summary>  
+
+  - **为什么要引入 static**：由于函数中定义的变量是局部的，函数结束后变量的内存就释放了，如果下一次重新调用该函数，想要使用上一次调用时函数中的变量值，那么局部变量就不能满足要求了，如果引入全局变量的话，又会破坏破坏此变量的访问范围（假设该变量应该只在该函数内使用），这就需要 `static` 发挥作用了，使用 `static` 关键字，函数结束后不会释放它的内存，因为函数释放的内存在栈上，而 `static` 变量存储在静态存储区，同时，函数外的作用域也不能访问该变量，满足了需求。还有一种情况，需要一个数据对象为整个类而非某个对象服务，同时又力求不破坏类的封装性，即要求此成员隐藏在类的内部，对外不可见时，可将其定义为静态数据。
+  - **静态数据的存储**：静态数据存储在**静态存储区**，静态存储区分为 DATA 段和 BSS 段，DATA 段（全局初始化区）存放初始化的全局变量和静态变量；BSS 段（全局未初始化区）存放未初始化的全局变量和静态变量。**其中 BBS 段在程序执行之前会被系统自动清 0，所以未初始化的全局变量和静态变量在程序执行之前已经为 0**。
+  - `static` 修饰的静态局部变量只执行初始化一次，而且延长了局部变量的生命周期，直到程序运行结束以后才释放。
+  - `static` 修饰全局变量的时候，这个全局变量只能在本文件中访问，不能在其它文件中访问，即便是 extern 外部声明也不可以。
+  - `static` 修饰一个函数，则这个函数的只能在本文件中调用，不能被其他文件调用。
+  - 考虑到数据安全性，当程序想要使用全局变量的时候应该先考虑使用 `static`。
+  - **全局变量和全局静态变量的区别**：全局变量是不显式用 static 修饰的全局变量，全局变量默认是有外部链接性的，作用域是整个工程，在一个文件内定义的全局变量，在另一个文件中，通过 extern 全局变量名的声明，就可以使用全局变量；全局静态变量是显式用 static 修饰的全局变量，作用域是声明此变量所在的文件，其他的文件即使用 extern 声明也不能使用。
+  - 被 `static` 修饰的变量属于整个类公用的变量（内存地址相同），可以通过类名::变量名直接引用，不需要创建实例进行调用。如有一个类 `class A`，类内部有一个 `static` 变量 `a`，可以直接使用 `A::a` 使用 `a`。
+  - 被 `static` 修饰的方法属于整个类公用的方法（内存地址相同），可以通过类名::方法名直接引用，不需要创建实例进行调用。如有一个类 `class A`，类内部有一个 `static` 函数 `func()`，可以直接使用 `A::func()` 使用 `func()`。
+  - 被 static 修饰的变量、被 static 修饰的方法统一属于类的静态资源，是类实例之间共享的，换言之，一处变、处处变。
+  - **类的静态成员函数不能使用类的非静态成员**，因为静态成员函数属于整个类，在类实例化对象之前就已经分配空间了，而类的非静态成员必须在类实例化对象后才有内存空间。
+  > 参考：[C/C++ 中 static 的用法全局变量与局部变量](https://www.runoob.com/w3cnote/cpp-static-usage.html)
+
+</details>
+<details>
   <summary>new 与 operator new 的区别</summary>
 
   - `new` (new operator) 是一个内置的**运算符**；`operator new` 是一个**函数**。
@@ -21,24 +380,183 @@
 
 </details>
 <details>
-  <summary>编译过程中各阶段所作工作</summary>
-
-  - **预处理 $\Rightarrow$ 编译 $\Rightarrow$ 汇编 $\Rightarrow$ 链接**。
-  - 预处理（.c-->.i）：编译器将头文件编译进来，还有宏的替换。
-  - 编译（.i->.s）：编译器主要做词法分析，语法分析，语义分析等工作，检查无错误后，将其翻译为汇编语言。
-  - 汇编（.s-->.o）：汇编器将汇编语言翻译成目标机器指令，生成目标文件。
-  - 链接（.o-->可执行文件）：链接器将有关的目标文件链接起来，转为可执行文件。
-  > 参考：[程序编译的四个阶段](https://www.jianshu.com/p/539a712ed284)，[C++ 程序编译过程](https://zhuanlan.zhihu.com/p/45402323)
+  <summary>free 怎么保证能释放内存</summary>
+  
+  - `malloc` 的调用需要内存大小；`free` 的调用需要`malloc` 返回的内存地址，而不需要内存大小。
+  - `malloc` 返回的地址的前面一块内存存有 `malloc` 分配的内存大小值，`free` 根据这个内存大小值释放同样大小的内存块。
+  - 例子：假设你用 `malloc` 需要申请100个字节，实际是可能申请了104个字节，前4字节存有该块内存的实际大小100，并把前4个字节后的地址返回给你。`free` 释放的时候会根据传入的地址向前偏移4个字节，从这4字节获取具体的内存块大小并释放。
+  > 参考：[C 语言中 free 怎么知道要删除多大的空间](https://www.zhihu.com/question/23196195)
 
 </details>
 <details>
-  <summary>编译过程中的编译阶段所作的工作</summary>
+  <summary>define 和 const 的区别</summary>
+
+  - define 宏在预处理阶段展开；const 常量在编译阶段使用。
+  - define 宏没有类型，在预处理阶段不会做任何类型检查，直接展开；const 常量有具体的类型，在编译阶段会进行类型检查。
+  -  define 宏使用多少次，就展开多少次，在内存中可能会有多个重复数据；const 常量在内存中只有一份数据。
+  - 由于 define 宏是在预处理阶段展开，返回立即数，所以 define 宏存在于代码段；而 const 常量位于数据段。
+  - 由于 define 宏在预处理阶段被替换，所以如果由于这个 define 宏导致编译出错的话，返回的编译信息中不会有 define 宏的名称，而是 define 宏的替换值，如 `1.11`，而根据这个替换值难以定位错误发生的地方；如果使用 const 常量替换 define 宏，那么如果编译发生错误，那么编译信息中将会包含 const 常量的名称，可以轻松定位错误发生的位置。 
+  > 参考：[浅谈define和const的区别](https://blog.csdn.net/ZYZMZM_/article/details/83302084)，[const与define的区别](https://www.cnblogs.com/zhangjiansheng/p/7630160.html)，[Effective C++ 条款02-尽量以 const，enum，inline 替换 #define]()
+
+</details>
+<details>
+  <summary>define 和 inline 的区别</summary>
+
+</details>
+<details>
+  <summary>decltype</summary>
+
+  - `decltype` 用于求表达式的类型。`decltype(expression)`。
+  ```C++
+  int i;
+  double t;
+  struct A { double x; };
+  const A* a = new A();
+  decltype(a) x1;  // x1 是 A*
+  decltype(i) x2;  // x2 是 int
+  decltype(a->x) x3;  //  x3 是 double
+  ```
+  - C++11 中， 当函数返回类型为 `auto` 时，`auto` 和 `decltype` 配合一起使用，使用 `decltype` 告知返回类型。
+  ```C++
+  #include <iostream>
+  using namespace std;
   
-  - **词法分析 $\Rightarrow$ 语法分析 $\Rightarrow$ 语义分析**。
-  - 词法分析：其任务是对源程序逐字扫描，从中识别出一个个“单词”，“单词”又叫做符号，他是程序语言的基本语法单位，如关键字，标识符，常数，运算符，分隔符等。
-  - 语法分析：其任务是跟根据语言的规则将单词符号序列分解成语法单位，如“表达式”，“语句”，“程序”等。语法规则就是语法单位的构成规则，通过语法分析确定整个输入串能否构成一个语法上正确的程序。如果程序没有错误，语法分析后就能正确的构造出语法树，否则就会指出语法错误，并给出诊断。
-  - 语义分析：其任务是对类型进行分析和检查，一般类型检查包括两点：类型载体及在其上的运算。如，整除取余运算符只能对整数使用，如果运算对象是浮点数就认为是类型错误。
-  > 参考：[编译原理-编译过程概述](https://blog.csdn.net/GarfieldGCat/article/details/89200785)
+  struct A {
+      int i;
+      A(int ii) : i(ii) {}
+  };
+  
+  A operator + (int n, const A & a) {
+      return A(a.i + n);
+  }
+  
+  template <class T1, class T2>
+  // 这里告诉编译器，add 的返回值为 decltype(x + y) 类型的 ，编译器将 add 实例化时，会自动推断出 x + y 的类型，C++11 中 函数返回值若为 auto，需要和 decltype 配合使用
+  auto add(T1 x, T2 y) -> decltype(x + y) { 
+      return x + y;
+  }
+
+  int main() {
+      auto d = add(100, 1.5);  // d 是 double 类型，d = 101.5
+      auto k = add(100, A(1));  // k 是 A 类型，因为表达式“100+A(1)”是A类型的
+      cout << d << endl;
+      cout << k.i << endl;
+      return 0;
+  }
+  ```
+  - C++14 中，当函数返回类型为 `auto` 时，则可以不用 `decltype`。
+  ```C++
+  auto add (int a, int b) {
+      int i = a + b;
+      return i;
+  }
+  ```
+  > 参考：[C++11 auto 和 decltype 关键字](http://c.biancheng.net/view/438.html)
+
+</details>
+<details>
+  <summary>volatile</summary>
+
+  - `volatile` 关键字是一种类型修饰符，用它声明的类型变量可以被某些编译器未知的因素改变（操作系统，硬件等）。所以使用该关键字告诉编译器不应对这样的对象进行优化。
+  - `volatile` 关键字声明的变量，每次访问都必须从内存中取值（没有被 `volatile` 修饰的变量，可能由于被编译器优化，从CPU寄存器中取值）。
+  - `const`（编译期保证代码中没有被修改的地方，运行的时候不受限制）可以是 `volatile`（编译期告诉编译器不优化该变量，在运行期每次都从内存中取值）：表示一个变量在程序编译期不能被修改并且不能被优化，在程序运行期变量值可能会被修改，每次使用到该变量值都需要从内存中读取，防止意外错误。
+  - 指针可以是`volatile`的。
+  > 参考：[interview.md volatile]()
+
+</details>
+<details>
+  <summary>assert</summary>
+
+  - `assert` 的作用是计算表达式 `expression` ，如果其值为假，那么它先向 `stderr` 打印一条出错信息,然后通过调用 `abort` 来终止程序运行。
+  - 使用 `assert` 要包含头文件 `assert.h`。
+  - `assert` 是宏，不是函数。
+  - 可以通过在包含 `#include` 的语句之前插入 `#define NDEBUG` 来禁用 `assert` 调用。
+  - `assert` 可以用于在函数开始处检验传入参数的合法性。
+  - 每个 `assert` 只检验一个条件比较好，因为同时检验多个条件时，如果断言失败，无法直观的判断是哪个条件失败。
+  - 在 `assert` 中不能使用改变环境的语句，因为 `assert` 只在 DEBUG 生效，如果这么做，会使用程序在真正运行时遇到问题。`assert` 只有在 Debug 版本中才有效，如果编译为 Release 版本则被忽略。
+  > 参考：[断言（assert）的用法](https://www.runoob.com/w3cnote/c-assert.html)
+
+</details>
+<details>
+  <summary>union</summary>
+
+  - union（联合体）是一种**节省空间**的特殊的类，一个 union 可以有多个数据成员，但是在**任意时刻只有一个数据成员可以有值**。当某个成员被赋值后其他成员变为未定义状态。
+  - union 变量所占用的内存长度等于最长的成员的内存长度。
+  - 其成员的默认访问权限为 public。
+  - 可以含有构造函数、析构函数。
+  - 可以包含没有任何构造函数和析构函数的类对象。
+  - 不能含有引用类型的成员。
+  - 不能继承自其他类，不能作为基类。
+  - 不能含有虚函数。
+  - 不能包含 static 成员。
+  - 匿名 union 指的是一个没有赋予他名称的 union。
+  - 匿名 union 在其定义所在作用域可直接访问 union 成员。
+  - 匿名 union 不能包含 protected 成员或 private 成员。
+  - 全局匿名 union 必须是 static 的。
+  - union 的一个作用是可以用来**测试 CPU 是大端模式还是小端模式**。对于一个由 2 个字节组成的 16 位整数，在内存中存储这两个字节有两种方法：一种是将低序字节存储在起始地址，这称为小端（little-endian）字节序；另一种方法是将高序字节存储在起始地址，这称为大端（big-endian）字节序。
+  ![avatar](./大端和小端.png)
+  ```C++
+  #include <iostream>
+  using namespace std;
+
+  void checkCPU ()
+  {
+      union MyUnion {
+          int a;
+          char c;
+      } test;
+      test.a = 1;
+      if (test.c == 1)  // union 中的成员变量的起始地址是相同的
+          cout << "little endian" <<endl;
+      else cout << "big endian" <<endl;
+  }
+
+  int main()
+  {
+      checkCPU();
+      return 0;
+  }
+  ```
+  整型 1 在小端字序中的存储：![avatar](./整型1在小端字序中的存储.png)
+  整型 1 在大端字序中的存储：![avatar](./整型1在大端字序中的存储.png)
+  > 参考：[interview.md union]()，[union介绍](https://www.cnblogs.com/jeakeven/p/5113508.html)，[union变量存储](https://www.cnblogs.com/zhangchaoyang/articles/2713658.html)
+
+</details>
+
+### C++ 面向对象
+
+<details>
+  <summary>C++ 三大特性概括</summary>
+
+  - **封装 + 继承 + 多态**
+  - 封装：**代码模块化**，隐藏对象的属性和实现细节仅公开接口供用户使用。
+  - 继承：**代码复用**，可以在类原有的特性基础上进行拓展，增加功能。
+  - 多态：**接口复用**，一个接口，多种方法。
+  - 以上仅为三大特性概念的概括。
+  > 参考：[C++ 三大特性-封装](https://blog.csdn.net/cherrydreamsover/article/details/81942293)，[C++ 中的继承](https://blog.csdn.net/studyhardi/article/details/90744785)，[C++ 之多态性](https://blog.csdn.net/studyhardi/article/details/90815766)
+
+</details>
+<details>
+  <summary>继承</summary>
+  
+  - **public 继承**
+    - **成员访问方式变化**：基类 public 成员 $\Rightarrow$ 派生类 public 成员；基类 protected 成员 $\Rightarrow$ 派生类 protected 成员；基类 private 成员 $\Rightarrow$ 派生类中不可见。
+    - public 继承意味着 **is-a**（是一种），适用于基类身上的每一件事情一定也适用于派生类身上，每一个派生类对象也都是一个基类对象。设计类时，一定要注意使用 public 继承的时候，派生类对象一定也是一个基类对象。
+  - **private 继承**
+    - **成员访问方式变化**：基类 public 成员 $\Rightarrow$ 派生类 private 成员；基类 protected 成员 $\Rightarrow$ 派生类 protected 成员；基类 private 成员 $\Rightarrow$ 派生类中不可见。
+    - private 继承意味着 **is-implemented-in-terms-of**（根据某物实现出），但是尽量使用复合（composition）实现 is-implemented-in-terms-of，而不是 private 继承。
+  - **protected 继承**
+    - **成员访问方式变化**：基类 public 成员 $\Rightarrow$ 派生类 protected 成员；基类 protected 成员 $\Rightarrow$ 派生类 protected 成员；基类 private 成员 $\Rightarrow$ 派生类中不可见。
+  - 更多设计上的细节参考 Effective C++ 6-继承与面向对象的设计。
+  > 参考：[Effective C++ 6-继承与面向对象的设计]()
+
+</details>
+<details>
+  <summary>多态</summary>
+
+  - **静态多态**（编译时多态）：函数重载，运算符重载，类模板，函数模板。
+  - **动态多态**（运行时多态）：虚函数覆写。
+  > 参考：[C++多态面试题汇总](https://blog.csdn.net/Shuffle_Ts/article/details/98618661)
 
 </details>
 <details>
@@ -50,24 +568,6 @@
   - 声明一个纯虚函数的目的是为了让派生类只继承函数接口；声明一个虚函数的目的是为了让抽象类继承该函数的接口和缺省实现。
   - 可以为纯虚函数提供定义，即可为其供应一份实现代码，调用它的唯一途径是使用时明确指出其 class 名称。例如：`a->base::test();`，其中 `base` 是一个抽象类，`a` 是以 `base` 作为基类的派生类的一个实例，`test()` 是在 `base` 内声明并定义的一个纯虚函数。
   > [参考：C++ 虚函数与纯虚函数的用法与区别](https://www.cnblogs.com/inception6-lxc/p/8597326.html)，[Effective C++ 条款34：区别接口继承和实现继承]()
-
-</details>
-<details> 
-  <summary>int 类型的变量不赋予默认值，那么它的值是什么</summary>
-  
-  - 如果该变量处于静态存储区，即全局变量和静态变量存储的区域，那么变量会被默认初始化，其值置为0。
-  - 如果该变量不在静态存储区，那么变量不会被初始化，其值为随机值。
-  - 以上适用于所有内置类型的变量。
-  > 参考：[C++ Primer 中“内置类型的默认初始化到底指什么](https://zhidao.baidu.com/question/745125691050893132.html)
-
-</details>
-<details>
-  <summary>free 怎么保证能释放内存</summary>
-  
-  - `malloc` 的调用需要内存大小；`free` 的调用需要`malloc` 返回的内存地址，而不需要内存大小。
-  - `malloc` 返回的地址的前面一块内存存有 `malloc` 分配的内存大小值，`free` 根据这个内存大小值释放同样大小的内存块。
-  - 例子：假设你用 `malloc` 需要申请100个字节，实际是可能申请了104个字节，前4字节存有该块内存的实际大小100，并把前4个字节后的地址返回给你。`free` 释放的时候会根据传入的地址向前偏移4个字节，从这4字节获取具体的内存块大小并释放。
-  > 参考：[C 语言中 free 怎么知道要删除多大的空间](https://www.zhihu.com/question/23196195)
 
 </details>
 <details>
@@ -117,111 +617,6 @@
 
 </details>
 <details>
-  <summary>C++ 三大特性概括</summary>
-
-  - **封装 + 继承 + 多态**
-  - 封装：**代码模块化**，隐藏对象的属性和实现细节仅公开接口供用户使用。
-  - 继承：**代码复用**，可以在类原有的特性基础上进行拓展，增加功能。
-  - 多态：**接口复用**，一个接口，多种方法。
-  - 以上仅为三大特性概念的概括。
-  > 参考：[C++ 三大特性-封装](https://blog.csdn.net/cherrydreamsover/article/details/81942293)，[C++ 中的继承](https://blog.csdn.net/studyhardi/article/details/90744785)，[C++ 之多态性](https://blog.csdn.net/studyhardi/article/details/90815766)
-
-</details>
-<details>
-  <summary>继承</summary>
-  
-  - **public 继承**
-    - **成员访问方式变化**：基类 public 成员 $\Rightarrow$ 派生类 public 成员；基类 protected 成员 $\Rightarrow$ 派生类 protected 成员；基类 private 成员 $\Rightarrow$ 派生类中不可见。
-    - public 继承意味着 **is-a**（是一种），适用于基类身上的每一件事情一定也适用于派生类身上，每一个派生类对象也都是一个基类对象。设计类时，一定要注意使用 public 继承的时候，派生类对象一定也是一个基类对象。
-  - **private 继承**
-    - **成员访问方式变化**：基类 public 成员 $\Rightarrow$ 派生类 private 成员；基类 protected 成员 $\Rightarrow$ 派生类 protected 成员；基类 private 成员 $\Rightarrow$ 派生类中不可见。
-    - private 继承意味着 **is-implemented-in-terms-of**（根据某物实现出），但是尽量使用复合（composition）实现 is-implemented-in-terms-of，而不是 private 继承。
-  - **protected 继承**
-    - **成员访问方式变化**：基类 public 成员 $\Rightarrow$ 派生类 protected 成员；基类 protected 成员 $\Rightarrow$ 派生类 protected 成员；基类 private 成员 $\Rightarrow$ 派生类中不可见。
-  - 更多设计上的细节参考 Effective C++ 6-继承与面向对象的设计。
-  > 参考：[Effective C++ 6-继承与面向对象的设计]()
-
-</details>
-<details>
-  <summary>多态</summary>
-
-  - **静态多态**（编译时多态）：函数重载，运算符重载，类模板，函数模板。
-  - **动态多态**（运行时多态）：虚函数覆写。
-  > 参考：[C++多态面试题汇总](https://blog.csdn.net/Shuffle_Ts/article/details/98618661)
-
-</details>
-<details>
-  <summary>重载，覆写，隐藏</summary>
-  
-  - 重载：同一可访问区内被声明的几个具有不同参数列表（参数的类型，个数，顺序不同）的同名函数，根据参数列表确定调用那个函数。
-  - 覆写：派生类中重新定义的函数，其函数名，参数列表，返回类型，所有都必须同基类中被重写的函数一致，只有函数体不同。
-  - 隐藏：根据 C++ 的名称遮掩规则，内层作用域的名称会遮掩外层作用域的名称，在类中，基类是外层作用域，派生类是内层作用域，派生类中的函数与屏蔽与其同名的基类函数。如果派生类中的函数与基类同名，并且参数不同，无论有无 `virtual` 关键字，基类的函数都被隐藏；如果派生类的函数与基类的函数同名，并且参数相同，但是函数没有 `virtual` 关键字，此时基类的函数被隐藏。
-  ```C++
-  class Base {
-    private:
-      int x;
-    public:
-      virtual void mf1() = 0;
-      virtual void mf1(int);
-      void mf3();
-      void mfs(double);
-  };
-
-  class Derived: public Base {
-    public: 
-      virtual void mf1(); // 覆盖 void Base::mf1()，隐藏 void Base::mf1(int)
-      virtual void mf3(); // 隐藏 void Base::mf3()，void Base::mf3(double)
-      void mf4();
-      void mf4(double); // 重载 void Derived::mf4()
-  }
-  ```
-  > 参考：[C++ 中重载、重写（覆盖）和隐藏的区别](https://blog.csdn.net/zx3517288/article/details/48976097)，[重载、覆盖、隐藏的区别](https://blog.csdn.net/weixin_40087851/article/details/82012624)，[Effective C++ 条款33：避免遮掩继承而来的名称]()
-
-</details>
-<details>
-  <summary>C++11 部分特性</summary>
-  
-  - 使用 `nullptr` 代替 `NULL`，可区分空指针和0。
-  - 引入 `auto` 关键字，实现类型推导，但是 `auto` 不能用于函数传参，也不能用于推导数组类型。
-  - 引入基于范围的 `for` 循环。
-  - 列表初始化。
-  - C++11 之前，`>>` 一律被当做右移运算符来进行处理，而 C++11 开始，根据其应用场景进行判断。
-  - 支持 Lambda 表达式。
-  - 引入 `= default`，强制编译器生成默认函数版本。
-  - 引入 `= delete`，表示限制默认函数的生成。
-  - 引入 `final` 关键字。
-  - 引入 `override` 关键字。
-  - 引入 `decltype` 关键字，可以用于求表达式的类型。
-  - 引入 `noexcept` 关键字。
-  - 引入 `std::unordered_map` 和 `std::unordered_set`，内部实现是哈希表，因此查找的复杂度为 O(1)。
-  - 引入智能指针。
-
-  > 参考：[我在项目中经常使用的 C++11 新特性](https://zhuanlan.zhihu.com/p/102419965?utm_source=qq)
-</details>
-<details>
-  <summary>野指针</summary>
-  
-  - 野指针，就是指针指向的位置是未知的，随机的。
-  - **野指针成因**
-    - **指针定义时没有初始化**，指针在被定义的时候，如果程序不对其进行初始化的话，它会随机指向一个区域，但是全局指针和静态指针会默认初始化指向 `nullptr`。
-    - **指针被释放时没有置空**，当指针指向的空间使用 `free` 或 `delete` 释放后，如果程序员没有对其进行置空（指向 `nullptr` ）或者其他赋值操作的话，那么当前啊所指向的内存空间的值就是未知的，那么该指针为一个野指针。
-    - **指针操作超越变量作用域**，假定一个函数返回值为指针类型，在函数内创建一个变量，并返回指向该变量的指针，因为局部变量存放在栈中，函数结束时栈弹出该变量的值，那么原来存放该局部变量的内存的当前值是未知的，所以返回的指针是一个野指针。
-  - **如何避免野指针**
-    - 定义指针的时候记得初始化，可以置为 `nullptr`。
-    - 使用 `free` 和 `delete` 释放完指针指向的内存后，记得将指针置为 `nullptr`。
-  > 参考：[野指针（概念，产生原因，危害，避免方法）](https://blog.csdn.net/l477918269/article/details/89949858)
-
-</details>
-<details>
-  <summary>NULL，0，nullptr</summary>
-  
-  - C 语言中的 `NULL` 通常被定义为 `#define NULL ((void*)0)`，也就是说 `NULL` 实际上是一个 `void*` 的指针，然后吧 `void*` 指针赋值给其他类型的指针的时候，隐式转换成相应的类型。但是 C++ 是强类型的，`void*` 不能隐式转换为其他类型的指针，需要显式转换。当 C++ 中 `NULL` 定义为  `((void*)0)` 的时候，指针初始化使用 `NULL` 的时候可能需要显示转换类型，如 `int* p = (int*)NULL`。
-  - 为了解决 C++ 中使用 `NULL` 进行赋值的兽需显式转换的问题，提出用 0 代替 ((void*)0)，一般定义为 `#define NULL 0`，0 代表指向内存地址为 0 的内存，这样就不需要进行显式转换了，因为是直接把一块内存地址给指针，但使用的时候需要注意当 `NULL` 作为函数参数的时候可能会出问题，如有两个函数，`void func(int a);` 和 `void func(int* b)`，其中一个是另一个的重载版本，当使用 `NULL` 作为参数调用 `func()` 的时候，调用的是 `void func(int a);` 的版本，而我们实际上是想调用 `void func(int* b);`的，所以尽量不适用 NULL 作为指针。
-  - 为解决 C++ 中 `NULL` 的问题，在 C++11 中用 `nullptr` 代替 `NULL`，`nullptr` 代表一个空指针，既不是 `(void*)0)` 的宏定义，也不是 0 的宏定义。将`nullptr` 赋予指针时不需要进行类型转换，在作为参数传递的时候也不用担心重载问题，作为参数时会识别为指针而不是 `int` 类型。
-  > 参考：[史上最明白的 NULL、0、nullptr 区别分析](https://www.cnblogs.com/porter/p/3611718.html)
-
-</details>
-<details>
   <summary>为什么虚函数是动态绑定</summary>
   
   - 当一个对象的指针需要调用一个它的虚函数的时候，首先它需要找到它的虚函数表，在虚函数表中找到该虚函数的地址，然后运行处于该地址上的函数，但问题是只有当对象实例化以后才拥有一个虚函数表指针，而实例化在运行阶段发生，不在编译阶段发生。举个例子，有一个父类 `class A` 和一个他的派生类 `class B`，`class A` 有一个虚函数 `virtual void func1();`，和一个非虚函数 `void func2();`，创建一个指针 `A* a = new B`， 在程序中写入 `a->func1();`，在编译阶段，编译器只知道 `a` 是一个 `class A` 类型的指针，但是此时 `a` 所指向的内存并没有存放虚函数表的地址，也就不知道虚函数的地址，所以**编译期间无法确定虚函数的函数地址**，但是如果在程序中写入 `a->func2();`，由于 `func2()` 不是虚函数，他的函数地址在编译阶段可以确定。所以虚函数是动态绑定，在运行期可确定，非虚函数是静态绑定，在编译器可确定。
@@ -238,106 +633,47 @@
 
 </details>
 <details>
-  <summary>const 用法</summary>
+  <summary>介绍 C++ 所有的构造函数</summary>
 
-  - `const` 修饰变量，说明变量不可以被改变。
-  - `const` 修饰指针，分为指向常量的指针（pointer to const）和常量指针（const pointer）。如 `const int* a;` 是指向常量的指针，`int* const b;` 是常量指针。
-  - `const` 修饰引用，只有指向常量的引用，没有常量引用，因为引用只是别名不是变量，没有常量属性那么一说。如 `int a; const int& b = a;` 是指向常量的引用。
-  - `const` 修饰成员函数，说明该成员函数不能修改成员变量。被修饰的函数称为 `const` 成员函数。
-  - `const` 修饰类对象，则该类称为常对象，该对象只能调用类的 `const` 成员（`cosnt` 成员变量和 `const` 成员函数），没有被 `const` 修饰的对象则可以使用所有的成员，不管是不是 `const` 成员。
-  - 不能同时使用 `static` 和 `const` 修饰类的成员函数，因为在调用非 `static` 成员函数时，实际上会隐式传递一个 `this` 指针给成员函数，而 `cosnt` 成员函数则会隐式调用一个经 `cosnt` 修饰的 `this` 指针以保证他不会改变对象的内容，而由于 `static` 成员函数是属于整个类共享的，他是不需要 `this` 指针作为参数的，所以 `cosnt` 和 `static` 同时修饰一个成员函数会产生冲突。
-  > 参考：[C++ const 关键字小结](https://www.runoob.com/w3cnote/cpp-const-keyword.html)
-
-</details>
-<details>
-  <summary>static 用法</summary>  
-
-  - **为什么要引入 static**：由于函数中定义的变量是局部的，函数结束后变量的内存就释放了，如果下一次重新调用该函数，想要使用上一次调用时函数中的变量值，那么局部变量就不能满足要求了，如果引入全局变量的话，又会破坏破坏此变量的访问范围（假设该变量应该只在该函数内使用），这就需要 `static` 发挥作用了，使用 `static` 关键字，函数结束后不会释放它的内存，因为函数释放的内存在栈上，而 `static` 变量存储在静态存储区，同时，函数外的作用域也不能访问该变量，满足了需求。还有一种情况，需要一个数据对象为整个类而非某个对象服务，同时又力求不破坏类的封装性，即要求此成员隐藏在类的内部，对外不可见时，可将其定义为静态数据。
-  - **静态数据的存储**：静态数据存储在**静态存储区**，静态存储区分为 DATA 段和 BSS 段，DATA 段（全局初始化区）存放初始化的全局变量和静态变量；BSS 段（全局未初始化区）存放未初始化的全局变量和静态变量。**其中 BBS 段在程序执行之前会被系统自动清 0，所以未初始化的全局变量和静态变量在程序执行之前已经为 0**。
-  - `static` 修饰的静态局部变量只执行初始化一次，而且延长了局部变量的生命周期，直到程序运行结束以后才释放。
-  - `static` 修饰全局变量的时候，这个全局变量只能在本文件中访问，不能在其它文件中访问，即便是 extern 外部声明也不可以。
-  - `static` 修饰一个函数，则这个函数的只能在本文件中调用，不能被其他文件调用。
-  - 考虑到数据安全性，当程序想要使用全局变量的时候应该先考虑使用 `static`。
-  - **全局变量和全局静态变量的区别**：全局变量是不显式用 static 修饰的全局变量，全局变量默认是有外部链接性的，作用域是整个工程，在一个文件内定义的全局变量，在另一个文件中，通过 extern 全局变量名的声明，就可以使用全局变量；全局静态变量是显式用 static 修饰的全局变量，作用域是声明此变量所在的文件，其他的文件即使用 extern 声明也不能使用。
-  - 被 `static` 修饰的变量属于整个类公用的变量（内存地址相同），可以通过类名::变量名直接引用，不需要创建实例进行调用。如有一个类 `class A`，类内部有一个 `static` 变量 `a`，可以直接使用 `A::a` 使用 `a`。
-  - 被 `static` 修饰的方法属于整个类公用的方法（内存地址相同），可以通过类名::方法名直接引用，不需要创建实例进行调用。如有一个类 `class A`，类内部有一个 `static` 函数 `func()`，可以直接使用 `A::func()` 使用 `func()`。
-  - 被 static 修饰的变量、被 static 修饰的方法统一属于类的静态资源，是类实例之间共享的，换言之，一处变、处处变。
-  - **类的静态成员函数不能使用类的非静态成员**，因为静态成员函数属于整个类，在类实例化对象之前就已经分配空间了，而类的非静态成员必须在类实例化对象后才有内存空间。
-  > 参考：[C/C++ 中 static 的用法全局变量与局部变量](https://www.runoob.com/w3cnote/cpp-static-usage.html)
+  - **无用的默认构造函数**：如果没有显式地定义默认构造函数，编译器会自动生成一个默认构造函数，生成的默认构造函数什么也不做，只是为了保证程序能够正确运行而已。
+  - **有用的默认构造函数**：如果没有显式地定义默认构造函数，编译器会自动生成一个默认构造函数，同时，如果该类中有一个成员类对象，那么生成的默认构造函数并不是什么都不做，它会调用成员类对象的构造函数。
+  - **有用的默认构造函数**：如果没有显式地定义默认构造函数，编译器会自动生成一个默认构造函数，同时，如果该类中包含有一个虚函数，那么虚函数表 `_vbtl` 和 虚函数表指针 `_vptr` 会在默认构造函数中合成出来。
+  - **无参构造函数**：用户自定义的不带参数的构造函数，可以在初始化列表中对成员变量进行初始化，同时也会隐式进行成员类的构造以及虚函数表和虚函数表指针的合成。
+  - **带参构造函数**：用户自定义的带参数的构造函数，可以在初始化列表中对成员变量进行初始化，同时也会隐式进行成员类的构造以及虚函数表和虚函数表指针的合成。如果是单参数的构造函数，可以提供参数类型到类类型的隐式转换，如果不想要隐式转换，可以在该构造函数前面加上 `explicit`，说明该构造函数必须显式调用。
+  - **默认拷贝构造函数**：如果没有显式定义一个拷贝构造函数，那么编译器会自动生成一个拷贝构造函数，该拷贝函数是浅拷贝的，对于每个基本类型的成员变量进行按字节赋值。
+  - **自定义拷贝构造函数**：用户可自定义拷贝构造函数，对普通类型变量可以进行值拷贝，针对指针变量，可以新开辟一块空间，将源对象的指针指向的值放入该块内存，并让指针指向这块内存，这样就实现了深拷贝，源对象和拷贝对象之间不会互相影响。
+  > [C++默认构造函数——深入理解](https://blog.csdn.net/hankai1024/article/details/7947989)
 
 </details>
 <details>
-  <summary>指针和引用的区别</summary>
-  
-  - 指针是一个变量，这个变量存储的是一个地址；引用只是原变量的一个别名。
-  - 指针占有一块自己的内存空间；而引用和原变量的内存空间是一样的。
-  - 使用 `sizeof` 看一个指针的大小是4；而引用则是被引用对象的大小。
-  - 指针可以初始化为空值；而引用不可以为空，必须被初始化，且必须是对一个已存在对象的引用。
-  - 指针可以有多级；引用只有一级。
-  - 指针使用 `++` 是指向下一块地址；而引用使用 `++` 就是原变量进行 `++` 操作。
-  - 有 `const` 指针，`A* const a;` 是正确的，指针是一个变量，可以有 `const` 属性；没有 `const` 引用，`A b; A& const a = b;;` 是错误的，因为引用自身不是一个对象，是一个别名，本来就是不能修改的，就无所谓 `const` 属性一说，如果把 `const` 放在 `A&` 前面，那么修饰的就是引用所指向的那个对象了；而对象是有 `const` 属性的，自然是没问题的。
-  - 指针在使用中可以指向其它对象；但是引用只能是一个对象的引用，不能被改变。
-  - 如果返回动态内存分配的对象或者内存，必须使用指针；引用可能引起内存泄露。
-  - 指针需要解引用才能对被指对象进行操作，引用不需要。
-  > 参考：[C++面试宝典导读](https://www.nowcoder.com/tutorial/93/a34ed23d58b84da3a707c70371f59c21)，[引用没有const，指针有const](https://www.zhihu.com/question/291649692)
+  <summary>什么情况下会调用拷贝构造函数</summary>
+
+  - 当函数的参数为类的对象的时候。
+  - 函数的返回值是类的对象的时候。
+  - 对象需要通过另一个对象初始化的时候。
+  > 参考：[C++ 拷贝函数详解](https://www.cnblogs.com/alantu2018/p/8459250.html)
 
 </details>
 <details>
-  <summary>堆和栈的区别</summary>
+  <summary>构造函数为什么不能定义为虚函数</summary>
 
-  - **申请方式**：stack 由系统自动分配；heap 需要程序员自己申请，并指明大小。
-  - **申请后系统的响应**：申请栈上的空间时，只要栈的剩余空间大于所申请空间，系统将为程序提供内存，否则将报异常提示栈溢出；申请堆上的空间时，首先应该知道操作系统有一个记录空闲内存地址的链表，当系统收到程序的申请时，会遍历该链表，寻找第一个空间大于所申请空间的堆结点，然后将该结点从空闲结点链表中删除，并将该结点的空间分配给程序，另外，对于大多数系统，会在这块内存空间中的首地址处记录本次分配的大小，这样，代码中的 `delete` 语句才能正确的释放本内存空间。另外，由于找到的堆结点的大小不一定正好等于申请的大小，系统会自动的将多余的那部分重新放入空闲链表中。
-  - **申请大小的限制**：栈是向低地址扩展的数据结构，是一块连续的内存的区域，栈顶的地址和栈的最大容量是系统预先规定好的，在 Windows 下，**栈的大小是 1M**，如果申请的空间超过栈的剩余空间时，将提示 overflow；堆是向高地址扩展的数据结构，是不连续的内存区域，这是由于系统是用链表来存储的空闲内存地址的，自然是不连续的，而链表的遍历方向是由低地址向高地址，堆的大小受限于计算机系统中有效的虚拟内存，32位 Windows 系统中，一个进程空间大小为 4G，其中进程的高位 2G 留给内核，低于 2G 留给用户，所以进程中的**堆的大小小于 2G**，进程的堆获得的空间比较灵活，也比较大。
-  - **申请效率**：栈由系统自动分配，速度较快；但程序员是无法控制的；堆是由new分配的内存，一般速度比较慢，而且容易产生内存碎片。
-  - **堆和栈中的存储内容**：栈中一般存放返回地址，局部变量，函数参数等；存放在堆中的一块数据一般会在头部存放该数据块的大小，堆中的具体内容由程序员决定。
-  > 参考：[堆和栈的区别](https://zhuanlan.zhihu.com/p/78478567)，[进程空间分配和堆栈大小](https://www.cnblogs.com/ladawn/p/8449399.html)
+  - 因为没有意义啊，构造函数在虚函数表建立之前就要执行。
+  > 参考：[C++中为什么构造函数不能定义为虚函数](https://blog.csdn.net/qq_39885372/article/details/104915425)
 
 </details>
 <details>
-  <summary>进程的最大线程数</summary>
+  <summary>构造函数或者析构函数中调用虚函数会怎样</summary>
 
-  - 32位 Windows 下，一个进程虚拟地址空间为 4G（2^32），内核占 2G，留给用户只有 2G，一个线程默认栈的大小是 1M，所以一个进程最大开2048个线程。当然内存不会完全拿来做线程的栈，所以最大线程数实际值要小于2048，大概2000个。
-  - 32位 Linux 下，一个进程虚拟地址空间4G，内核占1G，用户留3G，一个线程默认栈的大小为 8M，所以最多380个左右线程。
-  - 可以通过修改默认栈的方式改变进程的最大线程数。
-  > 参考：[进程空间分配和堆栈大小](https://www.cnblogs.com/ladawn/p/8449399.html)
+  - 最好不要。派生类在构造过程中会先调用基类的构造函数，如果基类中调用了一个虚函数，那么他会调用基类版本的虚函数，而不是派生类的版本，因为在此时，对象其实是基类对象而不是派生类对象，这样的话，虚函数就没有起到虚函数的作用，因为它在哪个类的构造函数中就调用那个类的虚函数版本。析构函数同理，虚函数在哪个类的析构函数中使用就调用那个类的虚函数版本。
+  > [Effective C++ 条款09-绝不在构造和析构过程中调用 virtual 函数]()
 
 </details>
 <details>
-  <summary>struct 和 class 的区别</summary>
+  <summary>深拷贝和浅拷贝的区别</summary>
 
-  - **默认继承权**：class 默认 private 继承，struct 默认 public 继承。
-  - **成员默认访问权限**：class 的成员默认是 private 权限，struct 默认是 public 权限。
-  - C++ 中 struct 能包含成员函数，有自己的构造函数，可以有析构函数，支持继承、多态，支持private、protected、public关键字。
-  - class 可以继承自struct修饰的类；同时，struct 也可以继承自 class 修饰的类。当 class 修饰的类作为父类，struct 修饰的类作为子类时，默认继承是 private 还是 public 取决于子类而不是父类，这里由于是子类是 struct 修饰的，所以默认继承是 public；同理，当 struct 修饰的类作为父类，class 修饰的类作为子类时，默认继承是 private。
-  > 参考：[struct 和 class 的区别](https://www.cnblogs.com/ZhenXin0101/p/11451694.html)
-
-</details>
-<details>
-  <summary>C 和 C++ 的区别</summary>
-
-  - C++  面向对象；C 面向过程。
-  - C++ 具有封装、继承和多态三种特性。
-  - C++ 支持泛型编程，支持模板类、函数模板等。
-  - C++ 支持 RAII。
-  - C++ 支持异常。
-  - C++ 支持函数重载。
-  - 还有很多，不一一列举。
-  > 参考：[C++面试宝典导读](https://www.nowcoder.com/tutorial/93/a34ed23d58b84da3a707c70371f59c21)
-
-</details>
-<details>
-  <summary>define 和 const 的区别</summary>
-
-  - define 宏在预处理阶段展开；const 常量在编译阶段使用。
-  - define 宏没有类型，在预处理阶段不会做任何类型检查，直接展开；const 常量有具体的类型，在编译阶段会进行类型检查。
-  -  define 宏使用多少次，就展开多少次，在内存中可能会有多个重复数据；const 常量在内存中只有一份数据。
-  - 由于 define 宏是在预处理阶段展开，返回立即数，所以 define 宏存在于代码段；而 const 常量位于数据段。
-  - 由于 define 宏在预处理阶段被替换，所以如果由于这个 define 宏导致编译出错的话，返回的编译信息中不会有 define 宏的名称，而是 define 宏的替换值，如 `1.11`，而根据这个替换值难以定位错误发生的地方；如果使用 const 常量替换 define 宏，那么如果编译发生错误，那么编译信息中将会包含 const 常量的名称，可以轻松定位错误发生的位置。 
-  > 参考：[浅谈define和const的区别](https://blog.csdn.net/ZYZMZM_/article/details/83302084)，[const与define的区别](https://www.cnblogs.com/zhangjiansheng/p/7630160.html)，[Effective C++ 条款02-尽量以 const，enum，inline 替换 #define]()
-
-</details>
-<details>
-  <summary>define 和 inline 的区别</summary>
+  - 在对象拷贝过程中，如果没有自定义一个拷贝构造函数，系统会提供一个默认拷贝构造函数，默认拷贝构造函数对于基本类型的成员变量，**按字节赋值**，对于类类型的成员变量，调用其相应的拷贝构造函数，这种叫做浅拷贝，对于指针成员变量，如果按字节赋值的话，那么**两个对象中的这个指针成员变量将指向同一块内存**，如果其中一个对象进行析构以后，且析构函数中释放了该指针指向的内存，那么此时还未进行析构的那个对象的指针成员变量将指向一块存有未知数值的内存，而且在这个对象进行析构的时候，这块内存又被释放一次，结果会导致程序奔溃。
+  - 为解决这个问题，需要使用深拷贝，我们需要自定义一个拷贝构造函数，让指针成员变量指向新开辟的内存空间。
+  > 参考：[C++浅拷贝和深拷贝的区别](https://www.cnblogs.com/wjcoding/p/10955017.html)
 
 </details>
 <details>
@@ -512,18 +848,6 @@
 
 </details>
 <details>
-  <summary>C++ 内存管理</summary>
-
-  - 代码段：包括只读存储区和文本区，其中只读存储区存储字符串常量，文本区存储程序的机器代码。
-  - DATA 段（全局初始化区）：存储程序中已初始化的全局变量和静态变量。**DATA 段 + BSS 段 = 静态存储区**。
-  - BSS 段（全局未初始化区）：存储未初始化的全局变量和静态变量（局部+全局），以及所有被初始化为 0 的全局变量和静态变量。**BBS 段在程序执行之前会被系统自动清 0，所以未初始化的全局变量和静态变量在程序执行之前已经为 0**。
-  - 堆区：调用 new/malloc 函数时在堆区动态分配内存，同时需要调用 delete/free 来手动释放申请的内存。
-  - 映射区：存储动态链接库以及调用 mmap 函数进行的文件映射。
-  - 栈区：使用栈空间存储函数的返回地址、参数、局部变量、返回值。
-  > 参考：[C++面试宝典导读](https://www.nowcoder.com/tutorial/93/8f140fa03c084299a77459dc4be31c95)
-
-</details>
-<details>
   <summary>析构函数一般写成虚函数的原因</summary>
 
   - 任何 class 只要带有 virtual 函数都几乎确定也有一个 virtual 析构函数，当一个派生类对象经由一个基类对象执指针被删除，而该基类带着一个 non-virtual 析构函数，通常情况下是该派生类对象的派生类部分没被销毁，而如果是析构函数是虚函数，那么就会调用派生类的析构函数来释放对象内存，那么基类部分和派生类部分都将被释放。如有一个基类 `class A` 和一个派生类 `class B`，他们的析构函数不是虚函数，那么分析 `A* a= new B; delete A;`，这里释放 `a` 指向的内存时，只会释放 `class A` 部分的内存，而 `class B` 的部分还保留在内存中。
@@ -532,155 +856,136 @@
 
 </details>
 <details>
-  <summary>构造函数为什么不能定义为虚函数</summary>
+  <summary>成员初始化列表</summary>
 
-  - 因为没有意义啊，构造函数在虚函数表建立之前就要执行。
-  > 参考：[C++中为什么构造函数不能定义为虚函数](https://blog.csdn.net/qq_39885372/article/details/104915425)
-
-</details>
-<details>
-  <summary>构造函数或者析构函数中调用虚函数会怎样</summary>
-
-  - 最好不要。派生类在构造过程中会先调用基类的构造函数，如果基类中调用了一个虚函数，那么他会调用基类版本的虚函数，而不是派生类的版本，因为在此时，对象其实是基类对象而不是派生类对象，这样的话，虚函数就没有起到虚函数的作用，因为它在哪个类的构造函数中就调用那个类的虚函数版本。析构函数同理，虚函数在哪个类的析构函数中使用就调用那个类的虚函数版本。
-  > [Effective C++ 条款09-绝不在构造和析构过程中调用 virtual 函数]()
+  - **为什么用成员初始化列表会快一些**：因为对象的初始化动作发生在进入构造函数本体之前，在构造函数内部进行的都是赋值操作，而不是初始化。假定再构造函数内对成员变量进行赋值，如果是内置类型的话，没有多少影响，但是如果是类对象，那么就会先调用一次构造函数，然后再调用赋值操作符进行赋值操作。如果使用成员初始化列表就可以免去一次赋值操作。
+  - 可以使用派生类的成员初始化列表调用基类的带参构造函数，派生类构造函数一般隐式调用基类的默认构造函数，想要调用基类的带参构造函数就在派生类的构造函数的初始化列表中调用基类的带参构造函数。
+  - 初始化 `const` 成员变量的唯一方法就是使用初始化列表。
+  - 成员变量的初始化顺序和初始化列表中列出的变量的顺序无关，只和成员变量再类中声明的顺序有关。
+  > [Effective C++ 条款04-确定对象被使用前已被初始化]()，[MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)解析](https://blog.csdn.net/weixin_41157654/article/details/80820520)，[interview.md 初始化列表]()
 
 </details>
 <details>
-  <summary>深拷贝和浅拷贝的区别</summary>
-
-  - 在对象拷贝过程中，如果没有自定义一个拷贝构造函数，系统会提供一个默认拷贝构造函数，默认拷贝构造函数对于基本类型的成员变量，**按字节赋值**，对于类类型的成员变量，调用其相应的拷贝构造函数，这种叫做浅拷贝，对于指针成员变量，如果按字节赋值的话，那么**两个对象中的这个指针成员变量将指向同一块内存**，如果其中一个对象进行析构以后，且析构函数中释放了该指针指向的内存，那么此时还未进行析构的那个对象的指针成员变量将指向一块存有未知数值的内存，而且在这个对象进行析构的时候，这块内存又被释放一次，结果会导致程序奔溃。
-  - 为解决这个问题，需要使用深拷贝，我们需要自定义一个拷贝构造函数，让指针成员变量指向新开辟的内存空间。
-  > 参考：[C++浅拷贝和深拷贝的区别](https://www.cnblogs.com/wjcoding/p/10955017.html)
-
-</details>
-<details>
-  <summary>对象复用的了解，零拷贝的了解</summary>
-
-  - 对象复用一般指继承和复合。public 继承塑膜出 is-a 关系，private 继承塑膜出根据某物实现关系；复合可以塑膜出 has-a 和根据某物实现关系。
-  - 零拷贝主要的任务是避免CPU将数据从一块存储拷贝到另一块存储。零拷贝技术常见于linux中，例如用户空间到内核空间的拷贝，可以采用零拷贝技术，通过 mmap，直接将内核空间的数据通过映射的方法映射到用户空间，即物理上共用这段数据。
-  - 以上答案不确定是否正确。
-  >  参考：[interview.md 对象复用，零拷贝]()
-
-</details>
-<details>
-  <summary>介绍 C++ 所有的构造函数</summary>
-
-  - **无用的默认构造函数**：如果没有显式地定义默认构造函数，编译器会自动生成一个默认构造函数，生成的默认构造函数什么也不做，只是为了保证程序能够正确运行而已。
-  - **有用的默认构造函数**：如果没有显式地定义默认构造函数，编译器会自动生成一个默认构造函数，同时，如果该类中有一个成员类对象，那么生成的默认构造函数并不是什么都不做，它会调用成员类对象的构造函数。
-  - **有用的默认构造函数**：如果没有显式地定义默认构造函数，编译器会自动生成一个默认构造函数，同时，如果该类中包含有一个虚函数，那么虚函数表 `_vbtl` 和 虚函数表指针 `_vptr` 会在默认构造函数中合成出来。
-  - **无参构造函数**：用户自定义的不带参数的构造函数，可以在初始化列表中对成员变量进行初始化，同时也会隐式进行成员类的构造以及虚函数表和虚函数表指针的合成。
-  - **带参构造函数**：用户自定义的带参数的构造函数，可以在初始化列表中对成员变量进行初始化，同时也会隐式进行成员类的构造以及虚函数表和虚函数表指针的合成。如果是单参数的构造函数，可以提供参数类型到类类型的隐式转换，如果不想要隐式转换，可以在该构造函数前面加上 `explicit`，说明该构造函数必须显式调用。
-  - **默认拷贝构造函数**：如果没有显式定义一个拷贝构造函数，那么编译器会自动生成一个拷贝构造函数，该拷贝函数是浅拷贝的，对于每个基本类型的成员变量进行按字节赋值。
-  - **自定义拷贝构造函数**：用户可自定义拷贝构造函数，对普通类型变量可以进行值拷贝，针对指针变量，可以新开辟一块空间，将源对象的指针指向的值放入该块内存，并让指针指向这块内存，这样就实现了深拷贝，源对象和拷贝对象之间不会互相影响。
-  > [C++默认构造函数——深入理解](https://blog.csdn.net/hankai1024/article/details/7947989)
-
-</details>
-<details>
-  <summary>什么情况下会调用拷贝构造函数</summary>
-
-  - 当函数的参数为类的对象的时候。
-  - 函数的返回值是类的对象的时候。
-  - 对象需要通过另一个对象初始化的时候。
-  > 参考：[C++ 拷贝函数详解](https://www.cnblogs.com/alantu2018/p/8459250.html)
-
-</details>
-<details>
-  <summary>结构体内存对齐方式和为什么要进行内存对齐</summary>
-
-  - 给定结构体里每个变量一个对齐标准（根据规则，可能是宏指定的也可能是变量的大小），该变量的地址必须是该标准的整数倍。
-  - **数据成员对齐规则**：结构体的数据成员，第一个数据成员放在 offset 为 0 的地方（offset 位置由结构体的整体对齐决定），以后每个数据成员的对齐按照 `#pragma pack` 指定的数值和这个数据成员自身长度中，比较小的那个进行。
-  - **结构体的整体对齐规则**：在数据成员完成各自对齐之后，结构体本身也要进行对齐，对齐将按照 `#pragma pack` 指定的数值和结构最大数据成员长度中，比较小的那个进行。
-  - **结构体作为成员**：如果一个结构里有某些结构体成员，则结构体成员要从其内部最大元素大小的整数倍地址开始存储。
-  - **为什么要内存对齐**：因为每次 CPU 从内存中取数据，都是取总线宽度大小的数据，而起始地址得是总线宽度的整数倍（不确定），内存对齐有助于提升读取效率。（不懂）
+  <summary>重载，覆写，隐藏</summary>
+  
+  - 重载：同一可访问区内被声明的几个具有不同参数列表（参数的类型，个数，顺序不同）的同名函数，根据参数列表确定调用那个函数。
+  - 覆写：派生类中重新定义的函数，其函数名，参数列表，返回类型，所有都必须同基类中被重写的函数一致，只有函数体不同。
+  - 隐藏：根据 C++ 的名称遮掩规则，内层作用域的名称会遮掩外层作用域的名称，在类中，基类是外层作用域，派生类是内层作用域，派生类中的函数与屏蔽与其同名的基类函数。如果派生类中的函数与基类同名，并且参数不同，无论有无 `virtual` 关键字，基类的函数都被隐藏；如果派生类的函数与基类的函数同名，并且参数相同，但是函数没有 `virtual` 关键字，此时基类的函数被隐藏。
   ```C++
-  #include <iostream>
-  using namespace std;
-
-  #pragma pack (1) // 指定按1对齐
-  struct struct01 {
-      int i; // 长度4 > 1，按 1 对齐
-      short us; // 长度 2 > 1，按 1 对齐
-      char b; // 长度1 = 1，按 1 对齐
+  class Base {
+    private:
+      int x;
+    public:
+      virtual void mf1() = 0;
+      virtual void mf1(int);
+      void mf3();
+      void mfs(double);
   };
-  #pragma pack ()
 
-  #pragma pack (2) // 指定按2对齐
-  struct struct02 {
-      int i; // 长度4 > 2，按 2 对齐
-      short us; // 长度2 = 2，按 2 对齐
-      char b; // 长度1 < 2，按 1 对齐
-      char d; // 长度1 < 2，按 1 对齐
-  };
-  #pragma pack ()
-
-  // 默认对齐
-  struct struct03
-  {
-      int i; // 长度4 < 8，按 4 对齐
-      short us; // 长度2 < 8，按 2 对齐
-      char b; // 长度1 < 8，按 1 对齐
-  } ;
-
-  int main(){
-      struct01 s1;
-      struct02 s2;
-      struct03 s3;
-
-      cout << "sizeof(struct01): " << sizeof(struct01) << endl; // 输出 “sizeof(struct01): 7”
-      cout << "sizeof(struct02): " << sizeof(struct02) << endl; // 输出 “sizeof(struct02): 8”
-      cout << "sizeof(struct03): " << sizeof(struct03) << endl; // 输出 “sizeof(struct03): 8”
-
-      cout << "s1 i address: " << reinterpret_cast<intptr_t>(&(s1.i)) << endl; // 输出 “s1 i address: 6422041”
-      cout << "s1 us address: " << reinterpret_cast<intptr_t>(&(s1.us)) << endl; // 输出 “s1 us address: 6422045”
-      cout << "s1 b address: " << reinterpret_cast<intptr_t>(&(s1.b)) << endl; // 输出 “s1 b address: 6422047”
-      cout << "s2 i address: " << reinterpret_cast<intptr_t>(&(s2.i)) << endl; // 输出 “s2 i address: 6422032”
-      cout << "s2 us address: " << reinterpret_cast<intptr_t>(&(s2.us)) << endl; // 输出 “s2 us address: 6422036”
-      cout << "s2 b address: " << reinterpret_cast<intptr_t>(&(s2.b)) << endl; // 输出 “s2 b address: 6422038”
-      cout << "s2 d address: " << reinterpret_cast<intptr_t>(&(s2.d)) << endl; // 输出 “s2 d address: 6422039”
-      cout << "s3 i address: " << reinterpret_cast<intptr_t>(&(s3.i)) << endl; // 输出 “s3 i address: 6422024”
-      cout << "s3 us address: " << reinterpret_cast<intptr_t>(&(s3.us)) << endl; // 输出 “s3 us address: 6422028”
-      cout << "s3 b address: " << reinterpret_cast<intptr_t>(&(s3.b)) << endl; // 输出 “s3 b address: 6422030”
-
-      return 0;
+  class Derived: public Base {
+    public: 
+      virtual void mf1(); // 覆盖 void Base::mf1()，隐藏 void Base::mf1(int)
+      virtual void mf3(); // 隐藏 void Base::mf3()，void Base::mf3(double)
+      void mf4();
+      void mf4(double); // 重载 void Derived::mf4()
   }
   ```
-  > 参考：[C++ 面试题之结构体内存对齐计算问题总结大全](https://www.jb51.net/article/120329.htm)
+  > 参考：[C++ 中重载、重写（覆盖）和隐藏的区别](https://blog.csdn.net/zx3517288/article/details/48976097)，[重载、覆盖、隐藏的区别](https://blog.csdn.net/weixin_40087851/article/details/82012624)，[Effective C++ 条款33：避免遮掩继承而来的名称]()
 
 </details>
 <details>
-  <summary>内存泄露的定义，如何检测与避免</summary>
+  <summary>友元类和友元函数</summary>
 
-  - 内存泄漏指的是在程序里动态申请的内存在使用完后，没有进行释放，导致这部分内存没有被系统回收，久而久之，可能导致系统可用内存越来越少。
-  - 内存泄漏的可能成因
-    - 在一个程序块内没有成对使用 new/delete。
-    - 在类的构造函数与析构函数中没有匹配地调用 new/delete。
-    - 在释放对象数组时，使用的是 delete，而没有使用 delete []。
-    - 基类的析构函数为非虚函数，使用一个基类指针的 delete 删除一个派生类对象。
-  - 检测：利用内存检查工具。
-  - 如何避免内存泄漏
-    - 不要手动管理内存，可以尝试在适用的情况下使用智能指针。
-    - 使用 string 而不是 char*，string 类在内部处理所有内存管理。
-    - 在C++中避免内存泄漏的最好方法是尽可能少地在程序级别上进行 new 和 delete 调用。任何需要动态内存的东西都应该隐藏在一个 RAII 对象中，当它超出范围时释放内存。RAII 在构造函数中分配内存并在析构函数中释放内存，这样当变量离开当前范围时，内存就可以被释放。
-    - 培养良好的编码习惯，在涉及内存的程序段中，检测内存是否发生泄漏。
-  > [面试问题之 C++ 语言：如何避免内存泄漏](https://www.cnblogs.com/yichengming/p/11466636.html)，[C++中避免内存泄露常见的解决方式](https://www.cnblogs.com/mfrbuaa/p/4265483.html)
+  - 友元函数是可以直接访问类的私有成员（包括 private 和 protected）的非成员函数。它是定义在类外的普通函数，它不属于任何类，但需要在类的定义中加以声明，声明时只需在友元的名称前加上关键字 `friend`。友元函数的声明可以放在类的私有部分，也可以放在公有部分，它们是没有区别的，都说明是该类的一个友元函数。
+  - 友元类的所有成员函数都是另一个类的友元函数，都可以访问另一个类中的隐藏信息。
+    - 以下语句说明 `class B` 是 `class A` 的友元类。
+    ```C++
+    class A {
+        ......
+    public:
+        friend class B;
+        ......
+    }
+    ```
+    - 友元关系不能被继承。
+    - 友元关系是单向的，不具有交换性。若 `clsss B` 是 `class A` 的友元，`class A`不一定是 `class B` 的友元，要看在类中是否有相应的声明。
+    - 友元关系不具有传递性。若 `class B`是 `class A` 的友元，`class C` 是 `class B` 的友元，`class C` 不一定是 `class A` 的友元，同样要看类中是否有相应的申明。
+  - 友元能够使得普通函数直接访问类的保护数据，避免了类成员函数的频繁调用，可以节约处理器开销，提高程序的效率，但这样会破坏类的封装性，这是友元的缺点。在现在cpu速度越来越快的今天我们并不推荐使用它。
+  > 参考：[C++ 友元函数和友元类用法详解](https://blog.csdn.net/fanyun_01/article/details/79122916)
+
+</details>
+
+### C++ 多线程
+<details>
+  <summary>C++11 中的线程库</summary>
+
 
 </details>
 <details>
-  <summary>内存泄漏和内存溢出</summary>
+  <summary>协程</summary>
 
-  - 内存泄漏指的是在程序里动态申请的内存在使用完后，没有进行释放，导致这部分内存没有被系统回收，久而久之，可能导致系统可用内存越来越少。发生在堆上。
-  - 内存溢出指的是用户的实际的数据长度超过了可用的内存空间大小，导致覆盖了其他正常数据。一般发生在栈上。
-  > 参考：[内存泄漏和内存溢出有啥区别](https://www.zhihu.com/question/40560123)
+</details>
+
+### 其他
+
+<details>
+  <summary>编译过程中各阶段所作工作</summary>
+
+  - **预处理 $\Rightarrow$ 编译 $\Rightarrow$ 汇编 $\Rightarrow$ 链接**。
+  - 预处理（.c-->.i）：编译器将头文件编译进来，还有宏的替换。
+  - 编译（.i->.s）：编译器主要做词法分析，语法分析，语义分析等工作，检查无错误后，将其翻译为汇编语言。
+  - 汇编（.s-->.o）：汇编器将汇编语言翻译成目标机器指令，生成目标文件。
+  - 链接（.o-->可执行文件）：链接器将有关的目标文件链接起来，转为可执行文件。
+  > 参考：[程序编译的四个阶段](https://www.jianshu.com/p/539a712ed284)，[C++ 程序编译过程](https://zhuanlan.zhihu.com/p/45402323)
 
 </details>
 <details>
-  <summary>内存检查工具的了解</summary>
-
-  - Windows 下 vs 可用 CRT
-  - LInux 下可用 valgrind
-  > 参考：[C++ 内存泄露检查工具](https://blog.csdn.net/ttomqq/article/details/81937561)，[C/C++ 内存泄漏及检测](https://www.cnblogs.com/skynet/archive/2011/02/20/1959162.html)  
+  <summary>编译过程中的编译阶段所作的工作</summary>
+  
+  - **词法分析 $\Rightarrow$ 语法分析 $\Rightarrow$ 语义分析**。
+  - 词法分析：其任务是对源程序逐字扫描，从中识别出一个个“单词”，“单词”又叫做符号，他是程序语言的基本语法单位，如关键字，标识符，常数，运算符，分隔符等。
+  - 语法分析：其任务是跟根据语言的规则将单词符号序列分解成语法单位，如“表达式”，“语句”，“程序”等。语法规则就是语法单位的构成规则，通过语法分析确定整个输入串能否构成一个语法上正确的程序。如果程序没有错误，语法分析后就能正确的构造出语法树，否则就会指出语法错误，并给出诊断。
+  - 语义分析：其任务是对类型进行分析和检查，一般类型检查包括两点：类型载体及在其上的运算。如，整除取余运算符只能对整数使用，如果运算对象是浮点数就认为是类型错误。
+  > 参考：[编译原理-编译过程概述](https://blog.csdn.net/GarfieldGCat/article/details/89200785)
 
 </details>
+<details>
+  <summary>C++11 部分特性</summary>
+  
+  - 使用 `nullptr` 代替 `NULL`，可区分空指针和0。
+  - 引入 `auto` 关键字，实现类型推导，但是 `auto` 不能用于函数传参，也不能用于推导数组类型。
+  - 引入基于范围的 `for` 循环。
+  - 列表初始化。
+  - C++11 之前，`>>` 一律被当做右移运算符来进行处理，而 C++11 开始，根据其应用场景进行判断。
+  - 支持 Lambda 表达式。
+  - 引入 `= default`，强制编译器生成默认函数版本。
+  - 引入 `= delete`，表示限制默认函数的生成。
+  - 引入 `final` 关键字。
+  - 引入 `override` 关键字。
+  - 引入 `decltype` 关键字，可以用于求表达式的类型。
+  - 引入 `noexcept` 关键字。
+  - 引入 `std::unordered_map` 和 `std::unordered_set`，内部实现是哈希表，因此查找的复杂度为 O(1)。
+  - 引入智能指针。
+
+  > 参考：[我在项目中经常使用的 C++11 新特性](https://zhuanlan.zhihu.com/p/102419965?utm_source=qq)
+</details>
+<details>
+  <summary>C 和 C++ 的区别</summary>
+
+  - C++  面向对象；C 面向过程。
+  - C++ 具有封装、继承和多态三种特性。
+  - C++ 支持泛型编程，支持模板类、函数模板等。
+  - C++ 支持 RAII。
+  - C++ 支持异常。
+  - C++ 支持函数重载。
+  - 还有很多，不一一列举。
+  > 参考：[C++面试宝典导读](https://www.nowcoder.com/tutorial/93/a34ed23d58b84da3a707c70371f59c21)
+
+</details>
+
+
+
+
 <details>
   <summary>模板的用法和适用场景</summary>
   
@@ -760,98 +1065,8 @@
     - **元编程**：元编程的主要思想为，在编译器实现对类型或数值的计算；利用模板特化机制实现编译期循环结构，模板元程序则由编译器在编译期解释执行。
   > 参考：[interview.md 模板]()，[C++ 模板总结](https://blog.csdn.net/tonglin12138/article/details/88595747)，[C++模板全特化、偏特化](https://blog.csdn.net/m_buddy/article/details/72973207)，[C++ 模板应用浅析](https://blog.csdn.net/cyxisgreat/article/details/37957687)
 </details>
-<details>
-  <summary>成员初始化列表</summary>
 
-  - **为什么用成员初始化列表会快一些**：因为对象的初始化动作发生在进入构造函数本体之前，在构造函数内部进行的都是赋值操作，而不是初始化。假定再构造函数内对成员变量进行赋值，如果是内置类型的话，没有多少影响，但是如果是类对象，那么就会先调用一次构造函数，然后再调用赋值操作符进行赋值操作。如果使用成员初始化列表就可以免去一次赋值操作。
-  - 可以使用派生类的成员初始化列表调用基类的带参构造函数，派生类构造函数一般隐式调用基类的默认构造函数，想要调用基类的带参构造函数就在派生类的构造函数的初始化列表中调用基类的带参构造函数。
-  - 初始化 `const` 成员变量的唯一方法就是使用初始化列表。
-  - 成员变量的初始化顺序和初始化列表中列出的变量的顺序无关，只和成员变量再类中声明的顺序有关。
-  > [Effective C++ 条款04-确定对象被使用前已被初始化]()，[MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)解析](https://blog.csdn.net/weixin_41157654/article/details/80820520)，[interview.md 初始化列表]()
 
-</details>
-<details>
-  <summary>C++ 智能指针</summary>
-
-  - 用户开辟一块内存，使用以后容易忘记释放，会造成内存泄漏，如果释放了内存，但是没有将指针置空，那么指针将变成野指针。为了解决这两个问题，引入智能指针，**以对象管理资源**，获得资源后立刻放入管理对象，管理对象运用析构函数确保资源被释放。
-  - **auto_ptr**：`auto_ptr` 在拷贝和赋值过程中，会直接剥夺原对象对内存的控制权，转交给新对象，然后将原对象置为 `nullptr`，如果后面再次访问原对象就会出错。C++11 已移除 `auto_ptr`。
-  - **unique_ptr**：`unique_ptr` 直接禁用拷贝和赋值，任何调用他们的行为都将在编译期间报错。
-  - **shared_ptr**：`shared_ptr` 既不会直接剥夺原对象对内存的控制权，也允许进行拷贝和赋值，因为它引入了**引用计数**（用指针记录），`shared_ptr` 在内部为资源维护了一个引用计数，用来记录该资源被几个 `shared_ptr` 对象共享。当有一个对象加入管理该资源时，资源的计数加一；在对象销毁时，资源的计数减一，当资源的计数为 0 时，需要释放该资源，当资源的计数不为 0 时，说明还有其他的对象在管理此资源，那么就不能释放该资源。但是 `shared_ptr` 存在由引用计数导致的**循环引用问题**，本来还有线程安全问题，但是 C++ 库针对这一点，将 `shared_ptr` 中的引用计数操作改成原子操作，所以 `shared_ptr` 是线程安全的，而循环引用问题通过引入 `weak_ptr` 解决。
-  - **weak_ptr**：`weak_ptr` 为解决 `shared_ptr` 的循环引用问题而设计，它本身不能直接定义为管理原始指针的对象，只能将 `shared_ptr` 对象赋值给 `weak_ptr`，同时也不能将 `weak_ptr` 对象直接赋值给 `shared_ptr` 类型的对象，最重要的一点是赋值给它不会增加引用计数。举个例子，如下代码中，`ptr_a` 和 `m_ptr_b` 指向同一个资源，`ptr_b` 和 `m_ptr_a` 指向同一个资源，当离开局部作用域后，`ptr_a` 和 `ptr_b` 被析构，两个资源各自的引用计数减一，但要注意的是析构的是 `ptr_a` 和 `ptr_b` ，是智能指针，而不是他们管理的资源，所以`m_ptr_a` 和 `m_ptr_b` 不会被析构，由于此时 `m_ptr_a` 和 `m_ptr_b` 还管理着这两个资源，所以直到离开作用域都不会释放该资源。看图理解。当引入 `weak_ptr` 后，由于 `weak_ptr` 不会增加引用计数，在进行完 `ptr_a->set_ptr(ptr_b);ptr_b->set_ptr(ptr_a);` 操作后，两个资源的引用计数还是一，所以当 `ptr_a` 和 `ptr_b` 析构后，资源的引用计数变为 0，他们管理的资源也就可以被析构了。
-  ```C++
-  // 循环引用问题
-  #include <iostream>
-  #include <memory>
-  using namespace std;
-
-  class CB;
-  class CA
-  {
-  public:
-      void set_ptr(shared_ptr<CB>& ptr) { m_ptr_b = ptr; }
-  private:
-      shared_ptr<CB> m_ptr_b;
-  };
-
-  class CB
-  {
-  public:
-      void set_ptr(shared_ptr<CA>& ptr) { m_ptr_a = ptr; }
-  private:
-      shared_ptr<CA> m_ptr_a;
-  };
-
-  int main() {
-      {
-          shared_ptr<CA> ptr_a(new CA()); 
-          shared_ptr<CB> ptr_b(new CB());
-
-          ptr_a->set_ptr(ptr_b);
-          ptr_b->set_ptr(ptr_a);
-      }
-
-      return 0;
-  }
-  ```
-  ![avatar](./循环引用.png)
-  ```C++
-    // 引入 weak_ptr 解决循环引用问题
-  #include <iostream>
-  #include <memory>
-  using namespace std;
-
-  class CB;
-  class CA
-  {
-  public:
-      void set_ptr(shared_ptr<CB>& ptr) { m_ptr_b = ptr; }
-  private:
-      weak_ptr<CB> m_ptr_b; // 改成 weak_ptr
-  };
-
-  class CB
-  {
-  public:
-      void set_ptr(shared_ptr<CA>& ptr) { m_ptr_a = ptr; }
-  private:
-      weak_ptr<CA> m_ptr_a; // 改成 weak_ptr
-  };
-
-  int main() {
-      {
-          shared_ptr<CA> ptr_a(new CA()); 
-          shared_ptr<CB> ptr_b(new CB());
-
-          ptr_a->set_ptr(ptr_b);
-          ptr_b->set_ptr(ptr_a);
-      }
-
-      return 0;
-  }
-  ```
-  > 参考：[C++智能指针](https://blog.csdn.net/Ferlan/article/details/86513679)，[智能指针（三）：weak_ptr 浅析](https://blog.csdn.net/albertsh/article/details/82286999)
-
-</details>
 <details>
   <summary>C++的四种强制转换</summary>
 
@@ -859,217 +1074,16 @@
   - **dynamic_cast**：主要用作安全向下转型，向上转型与 static_cast 的效果是一样的，当进行下行转换的时候，要求基类中至少有一个虚函数，才会进行安全检查。
   - **const_cast**：将 const 类型转换为非 const 类型，去除掉表达式的 const 属性。
   - **reinterpret_cast**：用于低级转换，数据的二进制形式重新解释，但是不改变其值。用于进行各种不同类型的指针之间、不同类型的引用之间、指针和能容纳指针的整数类型之间（如 int* 类型转换为 int 类型）的转换。
-  - **为什么 static_cast 的向下转型是不安全的，而 dynamic_cast 的向下转型是安全的**：因为运行时 dynamic_static 会做安全检查，而 static_cast 不会。一个指向派生类对象的基类指针转型为其派生类的指针�������型，这个动作本身就是安全的，因为基类指针指向的这个派生类对象包含了派生类部分，只是基类指针指向的内存没有包含派生类部分，现在重新让一个派生类指针指向该派生类对象，这个派生类指针指向的内存自然会包含该派生类对象的派生类部分；一个指向基类对象的基类指针转型为其派生类的指针类型，这种情况是不好的，因为一个基类对象没有包含派生类的部分，如果强行转换，那么派生类部分的数据就是未知的，对于这种情况 static_cast 不会做出检查，会直接转换，将所指向的内存大小改成派生类的大小，但是 dynamic_cast 会做出检测，返回空指针，用户就可以知道这里出错了。
+  - **为什么 static_cast 的向下转型是不安全的，而 dynamic_cast 的向下转型是安全的**：因为运行时 dynamic_static 会做安全检查，而 static_cast 不会。一个指向派生类对象的基类指针转型为其派生类的指针类型，这个动作本身就是安全的，因为基类指针指向的这个派生类对象包含了派生类部分，只是基类指针指向的内存没有包含派生类部分，现在重新让一个派生类指针指向该派生类对象，这个派生类指针指向的内存自然会包含该派生类对象的派生类部分；一个指向基类对象的基类指针转型为其派生类的指针类型，这种情况是不好的，因为一个基类对象没有包含派生类的部分，如果强行转换，那么派生类部分的数据就是未知的，对于这种情况 static_cast 不会做出检查，会直接转换，将所指向的内存大小改成派生类的大小，但是 dynamic_cast 会做出检测，返回空指针，用户就可以知道这里出错了。
   ![avatar](./dynamic_cast和static_cast.jpg)
   > 参考：[C++ 中四种 cast 类型强制转换方式](https://blog.csdn.net/epluguo/article/details/12251759)，[关于 dynamic_cast、static_cast 转换做安全检查的不同](https://blog.csdn.net/znzxc/article/details/81177792)
 
 </details>
-<details>
-  <summary>左值，右值，左值引用，右值引用</summary>
-
-  - **左值**：左值是指表达式结束后依然存在的持久化对象。如 `int x = 1;`，其中 x 是左值。
-  - **右值**：右值是指表达式结束时就不再存在的临时对象。如 `int x = 1;`，其中 1 是右值。
-  - **左值引用**：用于对左值的引用，通过 `&` 来声明。在定义左值引用时，`=` 右边的要求是一个可修改的左值。
-    ```C++
-    #include <stdio.h>
-
-    int main()
-    {
-        const int x = 5;
-        int y = 1;
-        int z = 1;
-        int & tmp1 = x;  // ERROR: x 不是一个可修改的左值
-        int & tmp2 = 5;  // ERROR: 5 是一个右值
-        int & tmp3 = y + z;  // ERROR: y + z 是一个右值
-        return 0;
-    }
-    ```
-    - **左值引用的作用**：用于 rangeFor 循环；避免复制大的对象；参与函数中参数传递。
-  - **右值引用**：用于对右值的引用，通过 `&&` 来声明。在定义右值引用时，`=` 右边要求是一个右值。
-    ```C++
-    #include <stdio.h>
-
-    int main()
-    {
-        int && x = 5;
-        printf("x = %d\n", x);
-        return 0;
-    } 
-    ```
-    - **右值引用的作用**：可以通过右值引用，充分使用临时变量，或者即将不使用的变量即右值的资源，减少不必要的拷贝，提高效率。
-    - **移动构造函数**：有些时候我们需要一个对象的副本，使用复制构造；而有些时候我们有可能只是想将这个对象换个地方，这时候便可以使用移动构造函数。在移动构造函数中使用**浅拷贝**，避免深拷贝需要重新开辟新的堆空间带来的开销，同时在移动构造函数中将源对象中的指针置为 `nullptr`，避免源对象析构时释放堆上的内存。C++11 引入移动语义：**源对象资源的控制权全部交给目标对象**。
-    ![avatar](./移动构造函数.png)
-    ```C++
-    A(A && a): //  移动构造函数，没有 const
-    p(a.p) // 浅拷贝
-    {
-        a.p = nullptr; // 将源对象中的资源设置为 nullptr，这样的话 delete 源对象的时候，源对象释放的 p 是一个 nullptr，不会影响现在的对象
-    }
-
-    A & operator=(A && a) // 移动赋值运算符
-    {
-        if(&a == this) return *this;
-
-        p = a.p;
-        a.p = nullptr;
-        return *this;
-    }
-    ```
-    - **std::move()**：`std::move()` 的作用是将传入的值转换为右值。一般结合移动构造函数和移动赋值构造函数使用，`std::move()` 将对象转换为右值，并作为移动构造函数或者移动赋值构造函数的参数。
-  > 参考：[C++ 右值引用（std::move）](https://zhuanlan.zhihu.com/p/94588204)，[C/C++-左值、右值及引用](https://www.cnblogs.com/Bylight/p/10530274.html)，[移动构造函数](https://blog.csdn.net/sinat_25394043/article/details/78728504)，[C++ 的坑-移动构造函数和移动赋值运算符](https://zhuanlan.zhihu.com/p/44156491)
-
-</details>
-<details>
-  <summary>C++11 中的线程库</summary>
 
 
-</details>
-<details>
-  <summary>volatile</summary>
 
-  - `volatile` 关键字是一种类型修饰符，用它声明的类型变量可以被某些编译器未知的因素改变（操作系统，硬件等）。所以使用该关键字告诉编译器不应对这样的对象进行优化。
-  - `volatile` 关键字声明的变量，每次访问都必须从内存中取值（没有被 `volatile` 修饰的变量，可能由于被编译器优化，从CPU寄存器中取值）。
-  - `const`（编译期保证代码中没有被修改的地方，运行的时候不受限制）可以是 `volatile`（编译期告诉编译器不优化该变量，在运行期每次都从内存中取值）：表示一个变量在程序编译期不能被修改并且不能被优化，在程序运行期变量值可能会被修改，每次使用到该变量值都需要从内存中读取，防止意外错误。
-  - 指针可以是`volatile`的。
-  > 参考：[interview.md volatile]()
-
-</details>
-<details>
-  <summary>assert</summary>
-
-  - `assert` 的作用是计算表达式 `expression` ，如果其值为假，那么它先向 `stderr` 打印一条出错信息,然后通过调用 `abort` 来终止程序运行。
-  - 使用 `assert` 要包含头文件 `assert.h`。
-  - `assert` 是宏，不是函数。
-  - 可以通过在包含 `#include` 的语句之前插入 `#define NDEBUG` 来禁用 `assert` 调用。
-  - `assert` 可以用于在函数开始处检验传入参数的合法性。
-  - 每个 `assert` 只检验一个条件比较好，因为同时检验多个条件时，如果断言失败，无法直观的判断是哪个条件失败。
-  - 在 `assert` 中不能使用改变环境的语句，因为 `assert` 只在 DEBUG 生效，如果这么做，会使用程序在真正运行时遇到问题。`assert` 只有在 Debug 版本中才有效，如果编译为 Release 版本则被忽略。
-  > 参考：[断言（assert）的用法](https://www.runoob.com/w3cnote/c-assert.html)
-
-</details>
-<details>
-  <summary>union</summary>
-
-  - union（联合体）是一种**节省空间**的特殊的类，一个 union 可以有多个数据成员，但是在**任意时刻只有一个数据成员可以有值**。当某个成员被赋值后其他成员变为未定义状态。
-  - union 变量所占用的内存长度等于最长的成员的内存长度。
-  - 其成员的默认访问权限为 public。
-  - 可以含有构造函数、析构函数。
-  - 可以包含没有任何构造函数和析构函数的类对象。
-  - 不能含有引用类型的成员。
-  - 不能继承自其他类，不能作为基类。
-  - 不能含有虚函数。
-  - 不能包含 static 成员。
-  - 匿名 union 指的是一个没有赋予他名称的 union。
-  - 匿名 union 在其定义所在作用域可直接访问 union 成员。
-  - 匿名 union 不能包含 protected 成员或 private 成员。
-  - 全局匿名 union 必须是 static 的。
-  - union 的一个作用是可以用来**测试 CPU 是大端模式还是小端模式**。对于一个由 2 个字节组成的 16 位整数，在内存中存储这两个字节有两种方法：一种是将低序字节存储在起始地址，这称为小端（little-endian）字节序；另一种方法是将高序字节存储在起始地址，这称为大端（big-endian）字节序。
-  ![avatar](./大端和小端.png)
-  ```C++
-  #include <iostream>
-  using namespace std;
-
-  void checkCPU ()
-  {
-      union MyUnion {
-          int a;
-          char c;
-      } test;
-      test.a = 1;
-      if (test.c == 1)  // union 中的成员变量的起始地址是相同的
-          cout << "little endian" <<endl;
-      else cout << "big endian" <<endl;
-  }
-
-  int main()
-  {
-      checkCPU();
-      return 0;
-  }
-  ```
-  整型 1 在小端字序中的存储：![avatar](./整型1在小端字序中的存储.png)
-  整型 1 在大端字序中的存储：![avatar](./整型1在大端字序中的存储.png)
-  > 参考：[interview.md union]()，[union介绍](https://www.cnblogs.com/jeakeven/p/5113508.html)，[union变量存储](https://www.cnblogs.com/zhangchaoyang/articles/2713658.html)
-
-</details>
-<details>
-  <summary>友元类和友元函数</summary>
-
-  - 友元函数是可以直接访问类的私有成员（包括 private 和 protected）的非成员函数。它是定义在类外的普通函数，它不属于任何类，但需要在类的定义中加以声明，声明时只需在友元的名称前加上关键字 `friend`。友元函数的声明可以放在类的私有部分，也可以放在公有部分，它们是没有区别的，都说明是该类的一个友元函数。
-  - 友元类的所有成员函数都是另一个类的友元函数，都可以访问另一个类中的隐藏信息。
-    - 以下语句说明 `class B` 是 `class A` 的友元类。
-    ```C++
-    class A {
-        ......
-    public:
-        friend class B;
-        ......
-    }
-    ```
-    - 友元关系不能被继承。
-    - 友元关系是单向的，不具有交换性。若 `clsss B` 是 `class A` 的友元，`class A`不一定是 `class B` 的友元，要看在类中是否有相应的声明。
-    - 友元关系不具有传递性。若 `class B`是 `class A` 的友元，`class C` 是 `class B` 的友元，`class C` 不一定是 `class A` 的友元，同样要看类中是否有相应的申明。
-  - 友元能够使得普通函数直接访问类的保护数据，避免了类成员函数的频繁调用，可以节约处理器开销，提高程序的效率，但这样会破坏类的封装性，这是友元的缺点。在现在cpu速度越来越快的今天我们并不推荐使用它。
-  > 参考：[C++ 友元函数和友元类用法详解](https://blog.csdn.net/fanyun_01/article/details/79122916)
-
-</details>
-<details>
-  <summary>decltype</summary>
-
-  - `decltype` 用于求表达式的类型。`decltype(expression)`。
-  ```C++
-  int i;
-  double t;
-  struct A { double x; };
-  const A* a = new A();
-  decltype(a) x1;  // x1 是 A*
-  decltype(i) x2;  // x2 是 int
-  decltype(a->x) x3;  //  x3 是 double
-  ```
-  - C++11 中， 当函数返回类型为 `auto` 时，`auto` 和 `decltype` 配合一起使用，使用 `decltype` 告知返回类型。
-  ```C++
-  #include <iostream>
-  using namespace std;
-  
-  struct A {
-      int i;
-      A(int ii) : i(ii) {}
-  };
-  
-  A operator + (int n, const A & a) {
-      return A(a.i + n);
-  }
-  
-  template <class T1, class T2>
-  // 这里告诉编译器，add 的返回值为 decltype(x + y) 类型的 ，编译器将 add 实例化时，会自动推断出 x + y 的类型，C++11 中 函数返回值若为 auto，需要和 decltype 配合使用
-  auto add(T1 x, T2 y) -> decltype(x + y) { 
-      return x + y;
-  }
-
-  int main() {
-      auto d = add(100, 1.5);  // d 是 double 类型，d = 101.5
-      auto k = add(100, A(1));  // k 是 A 类型，因为表达式“100+A(1)”是A类型的
-      cout << d << endl;
-      cout << k.i << endl;
-      return 0;
-  }
-  ```
-  - C++14 中，当函数返回类型为 `auto` 时，则可以不用 `decltype`。
-  ```C++
-  auto add (int a, int b) {
-      int i = a + b;
-      return i;
-  }
-  ```
-  > 参考：[C++11 auto 和 decltype 关键字](http://c.biancheng.net/view/438.html)
-
-</details>
 <details>
   <summary>同步编程和异步编程</summary>
-
-</details>
-<details>
-  <summary>协程</summary>
 
 </details>
 <details>
@@ -1079,21 +1093,8 @@
 
 
 ## 网络
-<details>
-  <summary>TCP 粘包拆包</summary>
 
-  - 拆包原因1：要发送的数据大于 TCP 发送缓冲区剩余空间大小。
-  - 拆包原因2：待发送数据大于 MSS（最大报文段长度），TCP 在传输前将进行拆包。
-  - 粘包原因1：要发送的数据小于 TCP 发送缓冲区的大小，TCP 将多次写入缓冲区的数据一次发送出去。
-  - 粘包原因2：接收数据端的应用层没有及时读取接收缓冲区中的数据。
-  - 解决方案1：给每个数据包添加包首部，首部中应该至少包含数据包的长度，这样接收端在接收到数据后，通过读取包首部的长度字段，便知道每一个数据包的实际长度
-  - 解决方案2：发送端将每个数据包封装为固定长度，接收端每次从接收缓冲区中读取固定长度的数据就自然而然的把每个数据包拆分开来。
-  - 解决方案3：可以在数据包之间设置边界，服务端从网络流中按边界分离出各个数据包。
-  - TCP 是基于字节流的，虽然应用层和 TCP 传输层之间的数据交互是大小不等的数据块，但是 TCP 把这些数据块仅仅看成一连串无结构的字节流，没有边界；另外从 TCP 的帧结构也可以看出，在 TCP 的首部没有表示数据长度的字段，基于上面两点，在使用 TCP 传输数据时，才有粘包或者拆包现象发生的可能；UDP 是基于报文发送的，从 UDP 的帧结构可以看出，在 UDP 首部采用了 16bit 来指示 UDP 数据报文的长度，因此在应用层能很好的将不同的数据报文区分开，从而避免粘包和拆包的问题。
-  - 还有 TCP 拆包粘包表现形式的图没有画。
-  > 参考：[TCP粘包，拆包及解决方法](https://blog.csdn.net/wxy941011/article/details/80428470)，[计算机网络-自顶向下方法 3.5.1-TCP 连接]()
-  
-</details>
+### HTTP
 <details>
   <summary>HTTP 与 HTTPS 的区别及 HTTPS 流程</summary>
   
@@ -1126,30 +1127,80 @@
 
 </details>
 <details>
-  <summary>socket 网络编程</summary>
+  <summary>HTTP 请求方法有几种</summary>
+
+  - **GET**：获取资源，GET 方法用来请求访问已被 URI 识别的资源。指定的资源经服务器端解析后返回响应内容。
+  - **HEAD**：获取报文首部，和 GET 方法类似，但是不返回报文实体主体部分，主要用于确认 URL 的有效性以及资源更新的日期等。
+  - **POST**：传输实体的主体，POST 主要用来传输数据，而 GET 主要用来获取资源。
+  - **PUT**：上传文件，由于自身不带验证机制，任何人都可以上传文件，因此存在安全性问题，一般不使用该方法。
+  - **PATCH**“：对资源进行部分修改，PUT 也可以用于修改资源，但是只能完全替代原始资源，PATCH 允许部分修改。
+  - **DELETE**：删除文件，按请求 URI 删除指定的资源，与 PUT 功能相反，并且同样不带验证机制。
+  - **OPTIONS**：查询支持的方法和检查服务器性能。
+  - **CONNECT**：要求在与代理服务器通信时建立隧道，实现用隧道协议进行 TCP 通信，使用 SSL 和 TLS 协议把通信内容加密后经网络隧道传输。
+  - **TRACE**：追踪路径，服务器会将通信路径返回给客户端。
+  > [图解 HTTP 2.5-告知服务器意图的 HTTP 方法]()
   
-  - `socket`：`socket` 函数用于创建套接字。
-    - 函数原型：`SOCKET PASCAL FAR socket(int af, int type, int protocol)`。
-    - `af`：指定通信发生的区域，`AF_UNIX`，`AX_INET`，`AF_INET6`，`AF_UNIX` 为 UNIX 本地通信，`AX_INET` 是使用 IPV4 通信，`AF_INET6` 是使用 IPV6 通信。
-    - `type`：  描述要建立的套接字类型：`SOCK_STREAM`，`SOCK_DGRAM`，`SOCK_RAW`，`SOCK_STREAM` 是 流式套接字，`SOCK_DGRAM` 是 数据报式套接字，`SOCK_RAW` 是原始套接字。
-    - `protocol`：说明该套接字使用的特定协议，选择 TCP 或是 UDP。
-  - `bind`：将套接字地址（包括本地主机地址和本地端口地址）与所创建的套接字绑定起来。 
-    - 函数原型：`int PASCAL FAR bind(SOCKET s, const struct sockaddr FAR * name, int namelen)`。
-  - `connect`：用于建立连接。
-    - 函数原型：`int PASCAL FAR connect(SOCKET s, const struct sockaddr FAR * name, int namelen)`。
-  - `accept`： 用于使服务器等待来自某客户进程的实际连接。
-    - 函数原型：`SOCKET PASCAL FAR accept(SOCKET s, struct sockaddr FAR* addr, int FAR* addrlen)`。
-  - `listen`：用于监听客户发来的连接请求。
-    - 函数原型：`int PASCAL FAR listen(SOCKET s, int backlog)`。
-  - `send` 函数用于发送数据。
-    - 函数原型：`int PASCAL FAR send(SOCKET s, const char FAR *buf, int len, int flags)`。
-  - `recv`：用于接收数据。
-    - 函数原型：`int PASCAL FAR recv(SOCKET s, char FAR *buf, int len, int flags)`。
-  - `select` 函数用于检测一个或多个套接字的状态，对每一个套接字来说，这个调用可以请求读、写或错误状态方面的信息。请求给定状态的套接字集合由一个 `fd_set` 结构指示，在返回时，此结构被更新，以反映那些满足特定条件的套接字的子集，同时， `select` 函数调用返回满足条件的套接字的数目。
-    - 函数原型：`int PASCAL FAR select(int nfds, fd_set FAR * readfds, fd_set FAR * writefds, fd_set FAR * exceptfds, const struct timeval FAR * timeout)`。
-    - 使用 `select` 函数可以进行 **I/O 多路复用**。当程序中使用 `connect`，`accept`，`recv`这几个函数时，程序就是阻塞程序，执行到这些函数的时候必须等待某个事件发生，如果没有发生，进程或者线程就被阻塞，而且如果有多个套接字都要传输的时候，一个套接字在发送和接收过程中一直占用着设定的端口，此时其他套接字无法在该端口传输数据，其阻塞时间又会浪费实际可用的时间，使得效率很低。所以可以使用 `select` 函数，`select` 函数可以检测套接字的状态，只要轮询 `select` 函数，查看当前是否有可以处理的套接字即可。
-  - 还差两张 socket 通信原理的图没画，一个 TCP 的，一个 UDP 的。
-  > 参考：[socket 技术详解](https://www.cnblogs.com/fengff/p/10984251.html)，[socket 通信中 select 函数的使用和解释](https://www.cnblogs.com/gangzilife/p/9766292.html)，[IO 多路复用](https://www.jianshu.com/p/dd5b6893bef7)
+</details>
+<details>
+  <summary>URL，URN，UNI</summary>
+
+  - **URL**：统一资源定位符，URL 表示某一互联网资源的地点，互联网资源和 URL 唯一对应，URL 是 URI 的子集。
+  - **URN**：统一资源名称，URN 表示一个实体的标识符，实体和 URN 唯一对应，URN 是 URI 的子集。
+  - **URI**：统一资源标识符，URI 用字符串标识某一互联网资源，互联网资源和 URI 唯一对应。
+  > 参考：[HTTP 协议中 URI 和 URL 有什么区别](https://www.zhihu.com/question/21950864)
+
+</details>
+<details>
+  <summary>http/1.0 和 http/1.1 的区别</summary>
+
+  - **长连接**：HTTP1.0 默认不开启长连接；HTTP1.0 默认开启长连接。
+  - **缓存处理**：HTTP1.0 中主要使用首部（header）里的 If-Modified-Since，Expires 来做为缓存判断的标准；HTTP1.1 则引入了更多的缓存控制策略，例如 Entity tag，If-Unmodified-Since，If-Match，If-None-Match 等更多可供选择的字段来控制缓存策略。
+  - **带宽优化**：在 HTTP1.0 中，客户端只需要某个对象的一部分，而服务器却将整个对象送过来了；HTTP1.1则在请求头引入了 range 字段，它允许只请求资源的某个部分，可以有效降低带宽压力。
+  - **HOST 字段**：HTTP1.0 中没有 HOST 字段，因为 HTTP 1.0 认为每台服务器绑定唯一的 IP 地址；HTTP1.0 中有 HOST 字段，因为它考虑到了一台物理服务器上可以存在多个虚拟主机，他们共享一个 IP 地址。考虑一个物理主机上没有虚拟主机，那么一个物理主机对应一个 IP 地址，那么当 HTTP 报文段到达该传输到该主机时，可以直接获取想要的资源；但如果物理主机上有多个虚拟主机，那么当 HTTP 报文到达该物理主机时，他不知道应该选择哪个虚拟主机上的资源，所以需要加入 HOST 字段，让其有能力判断目标主机的位置。
+  - **错误通知的管理**：在 HTTP1.1 中新增了24个错误状态响应码。
+  > 参考：[http1.0，http1.1，http2.0区别](https://www.jianshu.com/p/2c25b7d54aa2)，[HTTP协议：HTTP1.0、HTTP1.1、HTTP2.0对比](https://segmentfault.com/a/1190000020042105)
+
+</details>
+<details>
+  <summary>由 http 升级为 https 需要做哪些操作</summary>
+
+  - 购买申请 SSL 证书。
+  - 对网站内容进行备份。
+  - 安装证书。
+  - 修改相关配置，将网页重定向。
+  > 参考：[如何将网站升级为HTTPS协议](https://blog.csdn.net/chanzhi2016/article/details/71706197)
+
+</details>
+<details>
+  <summary>URL 包括哪三个部分</summary>
+
+  - URL 可被认为是三部分组成：资源类型 + 存放资源的主机域名 + 资源文件。(存疑)
+  - URL 也可以被认为是四部分组成：协议 + 主机 + 端口 + 路径。
+  > 参考：[URL格式](https://baike.baidu.com/item/URL%E6%A0%BC%E5%BC%8F/10056474?fr=aladdin)
+
+</details>
+<details>
+  <summary>一个 ip 配置多个域名，靠什么识别</summary>
+
+  - 根据 HTTP 报文段中的 HOST 字段识别。
+  > 参考：[http/1.0 和 http/1.1 的区别]()
+
+</details>
+
+### TCP 和 UDP
+<details>
+  <summary>TCP 粘包拆包</summary>
+
+  - 拆包原因1：要发送的数据大于 TCP 发送缓冲区剩余空间大小。
+  - 拆包原因2：待发送数据大于 MSS（最大报文段长度），TCP 在传输前将进行拆包。
+  - 粘包原因1：要发送的数据小于 TCP 发送缓冲区的大小，TCP 将多次写入缓冲区的数据一次发送出去。
+  - 粘包原因2：接收数据端的应用层没有及时读取接收缓冲区中的数据。
+  - 解决方案1：给每个数据包添加包首部，首部中应该至少包含数据包的长度，这样接收端在接收到数据后，通过读取包首部的长度字段，便知道每一个数据包的实际长度
+  - 解决方案2：发送端将每个数据包封装为固定长度，接收端每次从接收缓冲区中读取固定长度的数据就自然而然的把每个数据包拆分开来。
+  - 解决方案3：可以在数据包之间设置边界，服务端从网络流中按边界分离出各个数据包。
+  - TCP 是基于字节流的，虽然应用层和 TCP 传输层之间的数据交互是大小不等的数据块，但是 TCP 把这些数据块仅仅看成一连串无结构的字节流，没有边界；另外从 TCP 的帧结构也可以看出，在 TCP 的首部没有表示数据长度的字段，基于上面两点，在使用 TCP 传输数据时，才有粘包或者拆包现象发生的可能；UDP 是基于报文发送的，从 UDP 的帧结构可以看出，在 UDP 首部采用了 16bit 来指示 UDP 数据报文的长度，因此在应用层能很好的将不同的数据报文区分开，从而避免粘包和拆包的问题。
+  - 还有 TCP 拆包粘包表现形式的图没有画。
+  > 参考：[TCP粘包，拆包及解决方法](https://blog.csdn.net/wxy941011/article/details/80428470)，[计算机网络-自顶向下方法 3.5.1-TCP 连接]()
   
 </details>
 <details>
@@ -1193,37 +1244,6 @@
 
 </details>
 <details>
-  <summary>socket 中的 accept() 发生在 TCP 三次握手的哪个阶段</summary>
-
-  - `accept()` 发生在三次握手之后。
-  > 参考：[TCP 服务端 accept 发生在三次握手的哪一个阶段](https://www.cnblogs.com/taoshihan/p/11217150.html)
-
-</details>
-<details>
-  <summary>HTTP 请求方法有几种</summary>
-
-  - **GET**：获取资源，GET 方法用来请求访问已被 URI 识别的资源。指定的资源经服务器端解析后返回响应内容。
-  - **HEAD**：获取报文首部，和 GET 方法类似，但是不返回报文实体主体部分，主要用于确认 URL 的有效性以及资源更新的日期等。
-  - **POST**：传输实体的主体，POST 主要用来传输数据，而 GET 主要用来获取资源。
-  - **PUT**：上传文件，由于自身不带验证机制，任何人都可以上传文件，因此存在安全性问题，一般不使用该方法。
-  - **PATCH**“：对资源进行部分修改，PUT 也可以用于修改资源，但是只能完全替代原始资源，PATCH 允许部分修改。
-  - **DELETE**：删除文件，按请求 URI 删除指定的资源，与 PUT 功能相反，并且同样不带验证机制。
-  - **OPTIONS**：查询支持的方法和检查服务器性能。
-  - **CONNECT**：要求在与代理服务器通信时建立隧道，实现用隧道协议进行 TCP 通信，使用 SSL 和 TLS 协议把通信内容加密后经网络隧道传输。
-  - **TRACE**：追踪路径，服务器会将通信路径返回给客户端。
-  > [图解 HTTP 2.5-告知服务器意图的 HTTP 方法]()
-  
-</details>
-<details>
-  <summary>URL，URN，UNI</summary>
-
-  - **URL**：统一资源定位符，URL 表示某一互联网资源的地点，互联网资源和 URL 唯一对应，URL 是 URI 的子集。
-  - **URN**：统一资源名称，URN 表示一个实体的标识符，实体和 URN 唯一对应，URN 是 URI 的子集。
-  - **URI**：统一资源标识符，URI 用字符串标识某一互联网资源，互联网资源和 URI 唯一对应。
-  > 参考：[HTTP 协议中 URI 和 URL 有什么区别](https://www.zhihu.com/question/21950864)
-
-</details>
-<details>
   <summary>TCP 拥塞控制</summary>
 
   - 如果网络出现拥塞，分组将会丢失，此时发送方会继续重传，从而导致网络拥塞程度更高。因此在出现拥塞的时候，应该控制发送方发送的速率。TCP 主要通过四个算法进行拥塞控制：慢开始、拥塞避免、快速恢复。
@@ -1253,6 +1273,227 @@
   > 参考：[计算机网络自顶向下 3.5.5-流量控制]()
 
 </details>
+<details>
+  <summary>TCP 和 UDP 的区别</summary>
+
+  - **面向连接**：TCP 是面向连接的传输协议，即传输数据之前需要先建立好连接；UDP 不是面向连接的，传输数据之前不需要建立连接。
+  - **可靠性**：TCP 是可靠数据传输协议；UDP不是可靠数据传输协议。
+  - **拥塞控制**：TCP 有拥塞控制；UDP 没有拥塞控制。
+  - **流量控制**：TCP 有流量控制；UDP 没有流量控制。
+  - **服务对象**：TCP 只能点对点的两点间通信；UDP 可以一对一，一对多，多对一的通信。
+  - **报文形式**：TCP是面向字节流的，他的报文可能会进行合并或者拆分；UDP 是面向报文的，其报文不合并不拆分。
+  - **适用场景**：TCP适用于要求可靠传输的应用，如文件传输等；UDP 适合实时应用，如直播等。
+  > 参考：[TCP 和 UDP 的区别和各自适用的场景](https://www.nowcoder.com/tutorial/93/0cf933dc97be4913b3f5d012eba1e875)
+  
+</details>
+<details>
+  <summary>TCP 和 UDP 相关的协议与端口号</summary>
+
+  - TCP 常用相关协议
+    - TELNET：远程终端协议，端口号 23。
+    - SMTP：简单邮件传输协议，端口号 25。
+    - FTP：文本传输协议，端口号 20（DATA）、21（CONTROL）。
+    - HTTP：超文本传输协议，端口号 80。
+    - HTTPS：超文本传输安全协议，端口号 443。
+    - DNS：域名系统，端口号 53。
+    - SSH，安全壳协议，端口号 22。
+    - POP3，邮局协议版本3，端口号 110。
+  - UDP 常用相关协议
+    - SMTP：简单邮件传输协议，端口号 25。
+    - DNS：域名系统，端口号 53。
+    - DHCP，动态主机配置协议，端口号 67。
+  > 参考：[TCP 和 UDP 协议常用端口汇总](https://blog.csdn.net/feizaoSYUACM/article/details/80866605?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-2.channel_param&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-2.channel_param)，[TCP 和 UDP 各自的协议和端口号](https://blog.csdn.net/qq_35023382/article/details/85320349)
+
+</details>
+<details>
+  <summary>TCP 的 11 种状态</summary>
+
+  - **CLOSED**：初始状态，表示TCP连接是“关闭着的“。
+  - **LISTEN**：表示服务器端的某个 SOCKET 处于监听状态，可以接受客户端的连接。
+  - **SYN_RCVD**：表示服务器接收到了来自客户端请求连接的 SYN 报文。
+  - **SYN_SENT**：表示客户端已发送SYN报文。
+  - **ESTABLISHED**：表示TCP连接已经成功建立。
+  - **FIN_WAIT_1**：当客户端想关闭连接，向服务端发送一个 FIN 报文，随后进入 FIN_WAIT_1 状态。
+  - **FIN_WAIT_2**：服务端在接收到对方的对 FIN 报文的应答报文后，进入 FIN_WAIT_2 状态，此时 SOCKET 进入半连接状态。
+  - **CLOSE_WAIT**：表示正在等待关闭，当服务端发送完对 FIN 报文的应答后，进入 CLOSE_WAIT 状态，接着向客户端发送一个 FIN 报文。
+  - **TIME_WAIT**：当客户端接收到服务端发送来的 FIN 报文后，发出一个 ACK 信号，随后进入 TIME_WAIT 状态，等待 2 * MSL 的时间后关闭连接返回 CLOSED 状态。
+  - **CLOSING**：罕见，当一方发送完 FIN 报文后，先接收到对方的 FIN 报文后，在接收到对方的 ACK 报文时，进入 CLOSING 状态，这种情况只发生在双方几乎同时发送关闭连接请求的时候。
+  - 关闭阶段的状态中客户端和服务端可以互换，这里为了表述的更加清楚，使用了客户端代表想要关闭连接的一方，用服务端代表被请求关闭的一方。
+  ![avatar](./11种状态.png)
+  > 参考：[TCP 的 11 种状态](https://www.cnblogs.com/qingergege/p/6603488.html)
+
+</details>
+<details>
+  <summary>TCP 怎么保证可靠性</summary>
+
+  - **序列号，确认号**：发送方和接收方都会有一个序列号和一个确认号，序列号是该报文段首字节的字节流编号，确认号是一方期望下一次从对方那里收到的报文的的序号。
+  - **超时重传**：当接收方接收到发送过来的报文 x 后，应当返回一个确认报文，如果超过一定时间，确认报文还没有到达发送方，就发生超时事件，发送方认为**报文丢失**（事实上不一定丢失，可能在某个网络节点滞留得比较久），发送方重传报文 x。
+  ![avatar](./超时重传.png)
+  - **超时间间隔加倍**：每当超时事件发生时，超时间隔变为先前值的两倍。
+  - **快速重传**：超时重传存在的问题之一是超时周期可能相对较长，可以通过检测冗余 ACK 在超时事件发生之前检测到丢包情况。当接收方收到一个序号（A）大于其期望序号（B）的报文时（失序），说明发送方序号为 B 的报文丢失，接收方后面接收到数据后返回的确认报文的确认号都为 B，之前发送方已经收到过确认号为 B 的确认报文，后面如果又接收到三个确认号为 B 的确认报文，发送方就知道序号为 B 的报文丢失了（*由于 TCP中没有否认确认报文，所以需要用这种方式告诉发送方报文丢失了*），需要重传序号为 B 的报文。
+  ![avatar](./快速重传.png)
+  - **差错恢复**：GBN 协议和 SR 协议的混合体。
+  > 参考：[计算机网络自顶向下方法 3.5.4-可靠数据传输]()
+
+</details>
+<details>
+  <summary>GBN 协议和 SR 协议</summary>
+
+  - 解决**流水线**（允许发送方发送多个分组而无需等待确认报文）的**差错恢复**的两种基本方法为回退 N 步（GBN）和选择重传（SR）。
+  - **GBN（回退 N 步）协议**：在 GBN 协议中，定义一个基序号（base），为最早的未确认分组序号；一个下一个序号（nextseqnum），最小的未使用序号；一个窗口（窗口长度为 N），base 和 nextseqnum 需要在窗口范围内。
+  ![avatar](./GBN的序号.png)
+  GBN 协议中，对序号为 n 的分组采取累计确认的方式，表明接收方以正确接收到序号为 n 的以前的且包括 n 在内的所有分组；接收方丢弃所有的失序分组，所以 base 后面的分组中没有已被确认的分组；如果出现超时，发送方重传所有已发送但还未被确认过的分组。
+  ![avatar](./运行中的GBN.png)
+  - **SR（选择重传）协议**：在 SR 协议中，与 GB 一样，定义了一个基序号，一个下一个序号，一个窗口。
+  ![avatar](./SR的序号.png)
+  SR 协议中，接收方将确认一个正确接收的分组而不管其是否按序 。 失序的分组将被缓存直到所有丢失分组（即序号更小的分组）皆被收到为止，这时才可以将一批分组按序交付给上层。
+  ![avatar](./运行中的SR.png)
+  > 参考：[计算机网络自顶向下方法 3.4-可靠数据传输原理]()
+
+</details>
+
+### 网络编程
+<details>
+  <summary>socket 网络编程</summary>
+  
+  - `socket`：`socket` 函数用于创建套接字。
+    - 函数原型：`SOCKET PASCAL FAR socket(int af, int type, int protocol)`。
+    - `af`：指定通信发生的区域，`AF_UNIX`，`AX_INET`，`AF_INET6`，`AF_UNIX` 为 UNIX 本地通信，`AX_INET` 是使用 IPV4 通信，`AF_INET6` 是使用 IPV6 通信。
+    - `type`：  描述要建立的套接字类型：`SOCK_STREAM`，`SOCK_DGRAM`，`SOCK_RAW`，`SOCK_STREAM` 是 流式套接字，`SOCK_DGRAM` 是 数据报式套接字，`SOCK_RAW` 是原始套接字。
+    - `protocol`：说明该套接字使用的特定协议，选择 TCP 或是 UDP。
+  - `bind`：将套接字地址（包括本地主机地址和本地端口地址）与所创建的套接字绑定起来。 
+    - 函数原型：`int PASCAL FAR bind(SOCKET s, const struct sockaddr FAR * name, int namelen)`。
+  - `connect`：用于建立连接。
+    - 函数原型：`int PASCAL FAR connect(SOCKET s, const struct sockaddr FAR * name, int namelen)`。
+  - `accept`： 用于使服务器等待来自某客户进程的实际连接。
+    - 函数原型：`SOCKET PASCAL FAR accept(SOCKET s, struct sockaddr FAR* addr, int FAR* addrlen)`。
+  - `listen`：用于监听客户发来的连接请求。
+    - 函数原型：`int PASCAL FAR listen(SOCKET s, int backlog)`。
+  - `send` 函数用于发送数据。
+    - 函数原型：`int PASCAL FAR send(SOCKET s, const char FAR *buf, int len, int flags)`。
+  - `recv`：用于接收数据。
+    - 函数原型：`int PASCAL FAR recv(SOCKET s, char FAR *buf, int len, int flags)`。
+  - `select` 函数用于检测一个或多个套接字的状态，对每一个套接字来说，这个调用可以请求读、写或错误状态方面的信息。请求给定状态的套接字集合由一个 `fd_set` 结构指示，在返回时，此结构被更新，以反映那些满足特定条件的套接字的子集，同时， `select` 函数调用返回满足条件的套接字的数目。
+    - 函数原型：`int PASCAL FAR select(int nfds, fd_set FAR * readfds, fd_set FAR * writefds, fd_set FAR * exceptfds, const struct timeval FAR * timeout)`。
+    - 使用 `select` 函数可以进行 **I/O 多路复用**。当程序中使用 `connect`，`accept`，`recv`这几个函数时，程序就是阻塞程序，执行到这些函数的时候必须等待某个事件发生，如果没有发生，进程或者线程就被阻塞，而且如果有多个套接字都要传输的时候，一个套接字在发送和接收过程中一直占用着设定的端口，此时其他套接字无法在该端口传输数据，其阻塞时间又会浪费实际可用的时间，使得效率很低。所以可以使用 `select` 函数，`select` 函数可以检测套接字的状态，只要轮询 `select` 函数，查看当前是否有可以处理的套接字即可。
+  - 还差两张 socket 通信原理的图没画，一个 TCP 的，一个 UDP 的。
+  > 参考：[socket 技术详解](https://www.cnblogs.com/fengff/p/10984251.html)，[socket 通信中 select 函数的使用和解释](https://www.cnblogs.com/gangzilife/p/9766292.html)，[IO 多路复用](https://www.jianshu.com/p/dd5b6893bef7)
+  
+</details>
+<details>
+  <summary>socket 中的 accept() 发生在 TCP 三次握手的哪个阶段</summary>
+
+  - `accept()` 发生在三次握手之后。
+  > 参考：[TCP 服务端 accept 发生在三次握手的哪一个阶段](https://www.cnblogs.com/taoshihan/p/11217150.html)
+
+</details>
+<details>
+  <summary>同步 I/O 和异步 I/O</summary>
+  
+  - 同步 I/O 就是进程阻塞直到 I/O 完成，同步 I/O包括阻塞 I/O，非阻塞 I/O，I/O 复用，信号驱动 I/O。
+    - 阻塞 I/O：使用 `recv` 的进程一直等数据直到拷贝到用户空间，这段时间内进程始终阻塞。举个例子，A 同学用杯子装水，打开水龙头装满水然后离开，这一过程就可以看成是使用了阻塞 IO 模型，因为如果水龙头没有水，他也要等到有水并装满杯子才能离开去做别的事情。这种 IO 模型是同步的。
+    ![avatar](./阻塞IO.png)
+    - 非阻塞 I/O：让 `recv` 不管有没有获取到数据都返回，如果没有数据那么一段时间后再调用 `recv` 看看，如此循环。举个例子，B 同学也用杯子装水，打开水龙头后发现没有水，它离开了，过一会他又拿着杯子来看看，在中间离开的这些时间里，B 同学离开了装水现场（回到用户进程空间），可以做他自己的事情，这就是非阻塞 IO 模型。但是它只有是检查无数据的时候是非阻塞的，在数据到达的时候依然要等待复制数据到用户空间（等着水将水杯装满），因此它还是同步 IO。
+    ![avatar](./非阻塞IO.png)
+    - I/O 复用：这里在调用 `recv` 前先调用 `select` 或者 `poll`，这2个系统调用都可以在内核准备好数据（网络数据到达内核）时告知用户进程，这个时候再调用 `recv` 一定是有数据的。因此这一过程中它是阻塞于 `select` 或 `poll`，而没有阻塞于 `recv`，它也是同步 IO。这种 IO 模型比较特别，分个段,因为它能同时监听多个文件描述符（fd）。这个时候 C 同学来装水，发现有一排水龙头，舍管阿姨告诉他这些水龙头都还没有水，等有水了告诉他，于是等啊等（`select` 调用中），过了一会阿姨告诉他有水了，但不知道是哪个水龙头有水，自己看吧，于是C同学一个个打开，往杯子里装水（`recv`）。这里再顺便说说鼎鼎大名的 `epoll`（高性能的代名词啊），`epoll` 也属于 IO 复用模型，主要区别在于舍管阿姨会告诉 C 同学哪几个水龙头有水了，不需要一个个打开看（当然还有其它区别）。
+    ![avatar](./IO复用.png)
+    - 信号驱动 I/O：通过调用 `sigaction` 注册信号函数，等内核数据准备好的时候系统中断当前程序，执行信号函数（在这里面调用 `recv`）。D 同学让舍管阿姨等有水的时候通知他(（注册信号函数），没多久 D 同学得知有水了，跑去装水。是不是很像异步 IO，很遗憾，它还是同步IO（省不了装水的时间啊）。
+    ![avatar](./信号驱动IO.png)
+  - 异步 I/O 与同步 I/O 相反，当 I/O 完成后通知进程，中间没有任何阻塞。调用 `aio_read`，让内核等数据准备好，并且复制到用户进程空间后执行事先指定好的函数。E 同学让舍管阿姨将杯子装满水后通知他,整个过程 E 同学都可以做别的事情（没有 `recv`），这才是真正的异步IO。
+  ![avatar](./异步IO.png)
+  - 阻塞 I/O，非阻塞 I/O，I/O 复用，信号驱动 I/O 这些在 I/O 完成之前都有阻塞过程，所以都是同步 I/O，只有中间过程完全没有阻塞的才是异步 I/O。
+  ![avatar](./IO模型比较.png)
+  > 参考：[简述同步IO、异步IO、阻塞IO、非阻塞IO之间的联系与区别](https://www.cnblogs.com/felixzh/p/10345929.html)
+
+</details>
+<details>
+  <summary>I/O 复用的三种方法（select，poll，epoll）深入理解</summary>
+
+  - 假设有多路网络连接，如果所有连接共用一个线程，那么一个连接在等待数据的时候，其他连接同时也在等待这个连接结束，这个连接将阻塞后面所有的连接；如果为每一个连接都创建一个独立的线程，线程之间的切换将比较耗时，而且创建多个线程也比较占空间；如果所有连接共用一个线程，不主动等待数据，而是查询数据，查询是否有数据发送过来给连接，如果有数据就读取，这就是 I/O 复用。
+  - **I/O 复用的适用场景**
+    - 客户端处理多个 socket。
+    - 客户端同时处理连接和用户输入。
+    - 服务器同时处理 TCP 和 UDP。
+    - 服务器要监听多个端口。
+    - 服务器要同时处理监听 socket 和 连接 socket。
+  - **select** 允许应用程序监视一组文件描述符，等待一个或者多个描述符成为就绪状态，然后遍历所有的描述符，找到就绪的描述符，从而完成 I/O 操作。
+    - 函数原型：`int select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);`。
+    - `fd_set` 使用数组实现，数组大小使用 `FD_SETSIZE` 定义，所以只能监听少于 `FD_SETSIZE` 数量的描述符。
+    - 有三种类型的描述符类型：`readset`、`writeset`、`exceptset`，分别对应读、写、异常条件的描述符集合。
+    - `timeout` 为超时参数，**调用 `select` 会一直阻塞直到有描述符的事件到达或者等待的时间超过 `timeout`**。
+    - 成功调用返回结果大于 0，出错返回结果为 -1，超时返回结果为 0。
+    - 每次调用 `select`，都需要把 fd 集合从用户态拷贝到内核态，这个开销在 fd 很多时会很大。
+    - 同时每次调用 `select` 都需要在内核遍历传递进来的所有 fd 集合，这个开销在 fd 很多时也很大。
+    - select支持的文件描述符数量很少，默认是1024。
+  - **poll** 的功能与 select 类似，也是等待一组描述符中的一个成为就绪状态。
+    - 函数原型：`int poll(struct pollfd *fds, unsigned int nfds, int timeout);`。
+    - `poll` 没有描述符数量的限制。
+    - `poll` 中使用 pollfd 传输描述符数组，而不是 fd_set。
+  - **epoll** 允许应用程序监视一组文件描述符，等待一个或者多个描述符成为就绪状态，无需遍历描述符，因为会返回就绪的描述符。
+    - `int epoll_create(int size);`：内核中间加一个 ep 对象，把所有需要监听的 socket 都放到 ep 对象中。
+    - `int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);`：epoll_ctl 负责把 socket 增加、删除到内核的 ep 对象中。
+    - `int epoll_wait(int epfd, struct epoll_event * events, int maxevents, int timeout);`：epoll_wait 负责检测可读队列，一直阻塞直到有 socket 可读或者超时。
+    - epoll 有 EPOLLLT 和 EPOLLET 两种触发模式，LT 是默认模式，ET 是高速模式。
+    - LT 模式是水平触发。LT 模式下，事件就绪时，假设对事件没做处理，内核会反复通知事件就绪。
+    - ET 模式是边缘触发。ET 模式下，事件就绪时，内核只会在第一次通知事件就绪，通知之后进程必须立即处理事件，假设对事件没做处理，内核不会反复通知事件就绪。（*为什么 ET 模式要是非阻塞*）
+  > 参考：[I/O多路复用-概述与应用场景](https://my.oschina.net/u/2247638/blog/891197)，[I/O 多路复用是什么意思](https://www.zhihu.com/question/32163005)，[I/O多路复用技术是什么](https://www.zhihu.com/question/28594409)，[select、poll、epoll之间的区别](https://www.cnblogs.com/aspirant/p/9166944.html)，[彻底理解 I/O 多路复用！](https://mp.weixin.qq.com/s/PzOF9lFYVacPIRx0JakTjA)，[EPOLLLT和EPOLLET的区别](https://blog.csdn.net/u010325193/article/details/86413438?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-3.channel_param&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-3.channel_param)
+  
+</details>
+
+### 网络安全
+<details>
+  <summary>对称加密和非对称加密体系</summary>
+
+  - **加密与解密**：通过加密算法将一段明文转为密文，解密算法算法间一段密文转为明文。加密：$C = E(P, K_E)$， $P$ 代表明文，$K_E$ 代表加密密钥，$C$ 代表密文，$E$ 代表加密算法。解密：$P = D(C, K_D)$，$D$ 代表解密算法，$K_D$ 代表解密密钥。
+  ![avatar](./加密与解密.png)
+  - **对称加密**：当给定加密密钥后可以很容易的找到解密密钥的就是对称加密。这种加密体系下的传输数据的双方只需保存同一个密钥，可使用该密钥进行加密和解密（由于解密密钥可以由加密密钥推出）。
+  - **非对称加密**：当给定一个加密密钥不能够推出解密密钥的就是非对称加密。这种加密体系下传输数据的双方需要都有一个公钥和一个私钥，一个用于解锁，一个用于加锁。
+  - **应用**：在 HTTPS 上同时使用了对称加密和不对称加密两种加密手段，客户端存有一个密钥用于对称加密和解密。服务器存有一个公钥和一个私钥，分别用来加密和解密，HTTPS 要保证中间传输的是密文且双方能够够解密密文，就需要双方能加密和解密对方发过来的报文段。首先服务器将自己的公钥传输给客户端，让客户端用公钥加密客户端的密钥，然后发给服务器（由于该密钥由非对称加密手段加密，只有服务器里的私钥才能解密，中途传输是安全的），到达服务器后用私钥解密客户端密钥，然后之后的传输的所有数据双方都使用客户端的密钥进行机密和解密。
+  > 参考：[现代操作系统 9.5-密码学原理]()
+
+</details>
+<details>
+  <summary>数字签名的了解（高频）</summary>
+
+  - 数字前面是一种密码技术，数字签名可以验证某个人在一个文档上的前面确实是该人签的。
+  - **数字签名原理**：首先，文件所有者利用散列算法（MD5 或 SHA-1） 将其原始文档转换为一个 16 字节长度的散列值，然后文件所有者利用他的**私钥**对该散列值进行运算得到数字签名。文件接收者接收到该文件、该文件的数字签名、文件所有者的公钥，文件所有者利用**公钥**对数字签名进行运算，可以得到该文件的散列值，文件接收者接着利用散列算法（与所有者用的一致）求出文档的散列值，判断两个散列值是否相同，若不相同说明文档修改过，若相同则说明文档没修改过。
+  ![avatar](./数字签名.jpg)
+  - **为什么要将文件进行散列操作**：其实可以跳过散列操作直接对文件进行解密操作，生成数字签名，但是文件大小可能非常大，生成的数字签名可能非常大，而且加密解密的时间将会很长，所以要对其进行散列操作，转换为一个 16 字节的散列值。
+  - **为什么使用私钥计算数字签名**：因为私钥是文件所有者一个人私有的，其他人不能拥有，可以证明这个文件是他签署的，所以需要用私钥对文件进行运算生成数字签名。（*这里使用私钥将明文（文件散列值）转换为密文（数字签名），HTTPS 使用私钥将密文（加密的客户端密钥）转换为明文（客户端密钥），因为两者的目的不一样，这里是为了证明这个文件是文件所有者所签署（写）的，HTTPS 是为了只有服务器能获取（读）到这个文件*）。
+  - **数字证书**：前面描述数字签名的原理时，文件所有者需要向文件接收者发送公钥，如何证明该公钥对应着该文件所有者，如何证明该公钥中途没有被修改过，答案是引入数字证书。文件所有者一般通过数字证书的方式发布公钥，数字证书一般包含用户姓名，公钥和可信任的第三方数字签名，引入第三方数字签名是**为了保证公钥不会被篡改**，**证明这个公钥确实是该文件所有者的**。此时的公钥就如普通文件一样，利用数字签名的原理可保证公钥没被修改过，这里的第三方签名由认证机构（CA）提供，第三方数字签名的私钥由 CA 保管，公钥则向大众提供，用户即可利用其判断文件所有者提供的公钥是否正确。
+  > 参考：[计算机网络自顶向下方法 8.3.3-数字签名]()，[现代操作系统 9.5-密码学原理]()
+
+</details>
+<details>
+  <summary>客户端为什么信任第三方证书</summary>
+
+  - 描述数字签名原理和数字证书吗。
+  > 参考：[数字签名的了解]()
+
+</details>
+<details>
+  <summary>RSA 加密算法</summary>
+
+  - 选择两个大素数 $p$ 和 $q$。
+  - 计算 $n = pq$ 和 $z = (p - 1)(q - 1)$。
+  - 选择一个小于 $n$ 的一个数 $e$，且使 $e$ 和 $z$ 没有公因数。
+  - 求一个数 $d$，使得 $ed - 1$ 可以被 $z$ 整除。
+  - 公钥为一对数 $(n, e)$，私钥是一对数 $(n, d)$。
+  - 加密算法为 $c = (m^e) mod (n)$，其中 $m$ 是明文，$c$ 是密文。
+  - 解密算法为 $m = (c^d) mod (n)$，其中 $m$ 是明文，$c$ 是密文。
+  > 参考：[计算机网络自顶向下方法 8.2.2-公开密钥加密]()
+
+</details>
+<details>
+  <summary>服务器攻击（DDoS 攻击）</summary>
+
+  - DDoS ，即分布式拒绝服务，利用大量主机（肉鸡）向目标发送请求，消耗其网络带宽和系统资源，导致网络或系统不胜负荷以至于瘫痪而无法提供正常的服务。
+  - **如何应对 DDoS 攻击**：购买高防服务器；把参加 DDoS 攻击的主机加入黑名单；DDoS 清洗，把异常流量清洗掉；CDN 加速，把网站流量分配到各个节点中。
+  > 参考：[什么是 DDoS 攻击](https://www.zhihu.com/question/22259175)
+  
+</details>
+
+### 其他
 <details>
   <summary>从浏览器中输入一个 url 到回显的全过程</summary>
 
@@ -1309,119 +1550,13 @@
   > 参考：[现代操作系统 4.5-路由选择算法]()，[路由选择、路由协议与路由算法](https://blog.csdn.net/a1414345/article/details/72579410)
 
 </details>
-<details>
-  <summary>TCP 和 UDP 的区别</summary>
 
-  - **面向连接**：TCP 是面向连接的传输协议，即传输数据之前需要先建立好连接；UDP 不是面向连接的，传输数据之前不需要建立连接。
-  - **可靠性**：TCP 是可靠数据传输协议；UDP不是可靠数据传输协议。
-  - **拥塞控制**：TCP 有拥塞控制；UDP 没有拥塞控制。
-  - **流量控制**：TCP 有流量控制；UDP 没有流量控制。
-  - **服务对象**：TCP 只能点对点的两点间通信；UDP 可以一对一，一对多，多对一的通信。
-  - **报文形式**：TCP是面向字节流的，他的报文可能会进行合并或者拆分；UDP 是面向报文的，其报文不合并不拆分。
-  - **适用场景**：TCP适用于要求可靠传输的应用，如文件传输等；UDP 适合实时应用，如直播等。
-  > 参考：[TCP 和 UDP 的区别和各自适用的场景](https://www.nowcoder.com/tutorial/93/0cf933dc97be4913b3f5d012eba1e875)
-  
-</details>
-<details>
-  <summary>TCP 和 UDP 相关的协议与端口号</summary>
-
-  - TCP 常用相关协议
-    - TELNET：远程终端协议，端口号 23。
-    - SMTP：简单邮件传输协议，端口号 25。
-    - FTP：文本传输协议，端口号 20（DATA）、21（CONTROL）。
-    - HTTP：超文本传输协议，端口号 80。
-    - HTTPS：超文本传输安全协议，端口号 443。
-    - DNS：域名系统，端口号 53。
-    - SSH，安全壳协议，端口号 22。
-    - POP3，邮局协议版本3，端口号 110。
-  - UDP 常用相关协议
-    - SMTP：简单邮件传输协议，端口号 25。
-    - DNS：域名系统，端口号 53。
-    - DHCP，动态主机配置协议，端口号 67。
-  > 参考：[TCP 和 UDP 协议常用端口汇总](https://blog.csdn.net/feizaoSYUACM/article/details/80866605?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-2.channel_param&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-2.channel_param)，[TCP 和 UDP 各自的协议和端口号](https://blog.csdn.net/qq_35023382/article/details/85320349)
-
-</details>
 <details>
   <summary>网络层分片的原因与具体实现</summary>
 
   - **分片原因**：一个 IP 数据报的大小超过 MTU（链路层最大传输单元）。
   - **分片实现**：IP 数据报首部中**标识、片偏移、标志**这几个字段包含了分片和用于重组的信息。标识是生成 IP 数据报生成的唯一号，IP 分片后，所有的片的标识保持原来数据报的标识；片偏移用于确定片在原始数据报中的位置；最后一个片的标志设为 0，其他所有片的标志设为 1。
   > 参考：[计算机网络自顶向下方法 4.4-网际协议：因特网中的转发与编址]()
-
-</details>
-<details>
-  <summary>TCP 的 11 种状态</summary>
-
-  - **CLOSED**：初始状态，表示TCP连接是“关闭着的“。
-  - **LISTEN**：表示服务器端的某个 SOCKET 处于监听状态，可以接受客户端的连接。
-  - **SYN_RCVD**：表示服务器接收到了来自客户端请求连接的 SYN 报文。
-  - **SYN_SENT**：表示客户端已发送SYN报文。
-  - **ESTABLISHED**：表示TCP连接已经成功建立。
-  - **FIN_WAIT_1**：当客户端想关闭连接，向服务端发送一个 FIN 报文，随后进入 FIN_WAIT_1 状态。
-  - **FIN_WAIT_2**：服务端在接收到对方的对 FIN 报文的应答报文后，进入 FIN_WAIT_2 状态，此时 SOCKET 进入半连接状态。
-  - **CLOSE_WAIT**：表示正在等待关闭，当服务端发送完对 FIN 报文的应答后，进入 CLOSE_WAIT 状态，接着向客户端发送一个 FIN 报文。
-  - **TIME_WAIT**：当客户端接收到服务端发送来的 FIN 报文后，发出一个 ACK 信号，随后进入 TIME_WAIT 状态，等待 2 * MSL 的时间后关闭连接返回 CLOSED 状态。
-  - **CLOSING**：罕见，当一方发送完 FIN 报文后，先接收到对方的 FIN 报文后，在接收到对方的 ACK 报文时，进入 CLOSING 状态，这种情况只发生在双方几乎同时发送关闭连接请求的时候。
-  - 关闭阶段的状态中客户端和服务端可以互换，这里为了表述的更加清楚，使用了客户端代表想要关闭连接的一方，用服务端代表被请求关闭的一方。
-  ![avatar](./11种状态.png)
-  > 参考：[TCP 的 11 种状态](https://www.cnblogs.com/qingergege/p/6603488.html)
-
-</details>
-<details>
-  <summary>TCP 怎么保证可靠性</summary>
-
-  - **序列号，确认号**：发送方和接收方都会有一个序列号和一个确认号，序列号是该报文段首字节的字节流编号，确认号是一方期望下一次从对方那里收到的报文的的序号。
-  - **超时重传**：当接收方接收到发送过来的报文 x 后，应当返回一个确认报文，如果超过一定时间，确认报文还没有到达发送方，就发生超时事件，发送方认为**报文丢失**（事实上不一定丢失，可能在某个网络节点滞留得比较久），发送方重传报文 x。
-  ![avatar](./超时重传.png)
-  - **超时间间隔加倍**：每当超时事件发生时，超时间隔变为先前值的两倍。
-  - **快速重传**：超时重传存在的问题之一是超时周期可能相对较长，可以通过检测冗余 ACK 在超时事件发生之前检测到丢包情况。当接收方收到一个序号（A）大于其期望序号（B）的报文时（失序），说明发送方序号为 B 的报文丢失，接收方后面接收到数据后返回的确认报文的确认号都为 B，之前发送方已经收到过确认号为 B 的确认报文，后面如果又接收到三个确认号为 B 的确认报文，发送方就知道序号为 B 的报文丢失了（*由于 TCP中没有否认确认报文，所以需要用这种方式告诉发送方报文丢失了*），需要重传序号为 B 的报文。
-  ![avatar](./快速重传.png)
-  - **差错恢复**：GBN 协议和 SR 协议的混合体。
-  > 参考：[计算机网络自顶向下方法 3.5.4-可靠数据传输]()
-
-</details>
-<details>
-  <summary>GBN 协议和 SR 协议</summary>
-
-  - 解决**流水线**（允许发送方发送多个分组而无需等待确认报文）的**差错恢复**的两种基本方法为回退 N 步（GBN）和选择重传（SR）。
-  - **GBN（回退 N 步）协议**：在 GBN 协议中，定义一个基序号（base），为最早的未确认分组序号；一个下一个序号（nextseqnum），最小的未使用序号；一个窗口（窗口长度为 N），base 和 nextseqnum 需要在窗口范围内。
-  ![avatar](./GBN的序号.png)
-  GBN 协议中，对序号为 n 的分组采取累计确认的方式，表明接收方以正确接收到序号为 n 的以前的且包括 n 在内的所有分组；接收方丢弃所有的失序分组，所以 base 后面的分组中没有已被确认的分组；如果出现超时，发送方重传所有已发送但还未被确认过的分组。
-  ![avatar](./运行中的GBN.png)
-  - **SR（选择重传）协议**：在 SR 协议中，与 GB 一样，定义了一个基序号，一个下一个序号，一个窗口。
-  ![avatar](./SR的序号.png)
-  SR 协议中，接收方将确认一个正确接收的分组而不管其是否按序 。 失序的分组将被缓存直到所有丢失分组（即序号更小的分组）皆被收到为止，这时才可以将一批分组按序交付给上层。
-  ![avatar](./运行中的SR.png)
-  > 参考：[计算机网络自顶向下方法 3.4-可靠数据传输原理]()
-
-</details>
-<details>
-  <summary>http/1.0 和 http/1.1 的区别</summary>
-
-  - **长连接**：HTTP1.0 默认不开启长连接；HTTP1.0 默认开启长连接。
-  - **缓存处理**：HTTP1.0 中主要使用首部（header）里的 If-Modified-Since，Expires 来做为缓存判断的标准；HTTP1.1 则引入了更多的缓存控制策略，例如 Entity tag，If-Unmodified-Since，If-Match，If-None-Match 等更多可供选择的字段来控制缓存策略。
-  - **带宽优化**：在 HTTP1.0 中，客户端只需要某个对象的一部分，而服务器却将整个对象送过来了；HTTP1.1则在请求头引入了 range 字段，它允许只请求资源的某个部分，可以有效降低带宽压力。
-  - **HOST 字段**：HTTP1.0 中没有 HOST 字段，因为 HTTP 1.0 认为每台服务器绑定唯一的 IP 地址；HTTP1.0 中有 HOST 字段，因为它考虑到了一台物理服务器上可以存在多个虚拟主机，他们共享一个 IP 地址。考虑一个物理主机上没有虚拟主机，那么一个物理主机对应一个 IP 地址，那么当 HTTP 报文段到达该传输到该主机时，可以直接获取想要的资源；但如果物理主机上有多个虚拟主机，那么当 HTTP 报文到达该物理主机时，他不知道应该选择哪个虚拟主机上的资源，所以需要加入 HOST 字段，让其有能力判断目标主机的位置。
-  - **错误通知的管理**：在 HTTP1.1 中新增了24个错误状态响应码。
-  > 参考：[http1.0，http1.1，http2.0区别](https://www.jianshu.com/p/2c25b7d54aa2)，[HTTP协议：HTTP1.0、HTTP1.1、HTTP2.0对比](https://segmentfault.com/a/1190000020042105)
-
-</details>
-<details>
-  <summary>由 http 升级为 https 需要做哪些操作</summary>
-
-  - 购买申请 SSL 证书。
-  - 对网站内容进行备份。
-  - 安装证书。
-  - 修改相关配置，将网页重定向。
-  > 参考：[如何将网站升级为HTTPS协议](https://blog.csdn.net/chanzhi2016/article/details/71706197)
-
-</details>
-<details>
-  <summary>URL 包括哪三个部分</summary>
-
-  - URL 可被认为是三部分组成：资源类型 + 存放资源的主机域名 + 资源文件。(存疑)
-  - URL 也可以被认为是四部分组成：协议 + 主机 + 端口 + 路径。
-  > 参考：[URL格式](https://baike.baidu.com/item/URL%E6%A0%BC%E5%BC%8F/10056474?fr=aladdin)
 
 </details>
 <details>
@@ -1432,78 +1567,14 @@
 
 </details>
 <details>
-  <summary>对称加密和非对称加密体系</summary>
-
-  - **加密与解密**：通过加密算法将一段明文转为密文，解密算法算法间一段密文转为明文。加密：$C = E(P, K_E)$， $P$ 代表明文，$K_E$ 代表加密密钥，$C$ 代表密文，$E$ 代表加密算法。解密：$P = D(C, K_D)$，$D$ 代表解密算法，$K_D$ 代表解密密钥。
-  ![avatar](./加密与解密.png)
-  - **对称加密**：当给定加密密钥后可以很容易的找到解密密钥的就是对称加密。这种加密体系下的传输数据的双方只需保存同一个密钥，可使用该密钥进行加密和解密（由于解密密钥可以由加密密钥推出）。
-  - **非对称加密**：当给定一个加密密钥不能够推出解密密钥的就是非对称加密。这种加密体系下传输数据的双方需要都有一个公钥和一个私钥，一个用于解锁，一个用于加锁。
-  - **应用**：在 HTTPS 上同时使用了对称加密和不对称加密两种加密手段，客户端存有一个密钥用于对称加密和解密。服务器存有一个公钥和一个私钥，分别用来加密和解密，HTTPS 要保证中间传输的是密文且双方能够够解密密文，就需要双方能加密和解密对方发过来的报文段。首先服务器将自己的公钥传输给客户端，让客户端用公钥加密客户端的密钥，然后发给服务器（由于该密钥由非对称加密手段加密，只有服务器里的私钥才能解密，中途传输是安全的），到达服务器后用私钥解密客户端密钥，然后之后的传输的所有数据双方都使用客户端的密钥进行机密和解密。
-  > 参考：[现代操作系统 9.5-密码学原理]()
-
-</details>
-<details>
-  <summary>数字签名的了解（高频）</summary>
-
-  - 数字前面是一种密码技术，数字签名可以验证某个人在一个文档上的前面确实是该人签的。
-  - **数字签名原理**：首先，文件所有者利用散列算法（MD5 或 SHA-1） 将其原始文档转换为一个 16 字节长度的散列值，然后文件所有者利用他的**私钥**对该散列值进行运算得到数字签名。文件接收者接收到该文件、该文件的数字签名、文件所有者的公钥，文件所有者利用**公钥**对数字签名进行运算，可以得到该文件的散列值，文件接收者接着利用散列算法（与所有者用的一致）求出文档的散列值，判断两个散列值是否相同，若不相同说明文档修改过，若相同则说明文档没修改过。
-  ![avatar](./数字签名.jpg)
-  - **为什么要将文件进行散列操作**：其实可以跳过散列操作直接对文件进行解密操作，生成数字签名，但是文件大小可能非常大，生成的数字签名可能非常大，而且加密解密的时间将会很长，所以要对其进行散列操作，转换为一个 16 字节的散列值。
-  - **为什么使用私钥计算数字签名**：因为私钥是文件所有者一个人私有的，其他人不能拥有，可以证明这个文件是他签署的，所以需要用私钥对文件进行运算生成数字签名。（*这里使用私钥将明文（文件散列值）转换为密文（数字签名），HTTPS 使用私钥将密文（加密的客户端密钥）转换为明文（客户端密钥），因为两者的目的不一样，这里是为了证明这个文件是文件所有者所签署（写）的，HTTPS 是为了只有服务器能获取（读）到这个文件*）。
-  - **数字证书**：前面描述数字签名的原理时，文件所有者需要向文件接收者发送公钥，如何证明该公钥对应着该文件所有者，如何证明该公钥中途没有被修改过，答案是引入数字证书。文件所有者一般通过数字证书的方式发布公钥，数字证书一般包含用户姓名，公钥和可信任的第三方数字签名，引入第三方数字签名是**为了保证公钥不会被篡改**，**证明这个公钥确实是该文件所有者的**。此时的公钥就如普通文件一样，利用数字签名的原理可保证公钥没被修改过，这里的第三方签名由认证机构（CA）提供，第三方数字签名的私钥由 CA 保管，公钥则向大众提供，用户即可利用其判断文件所有者提供的公钥是否正确。
-  > 参考：[计算机网络自顶向下方法 8.3.3-数字签名]()，[现代操作系统 9.5-密码学原理]()
-
-</details>
-<details>
-  <summary>客户端为什么信任第三方证书</summary>
-
-  - 描述数字签名原理和数字证书吗。
-  > 参考：[数字签名的了解]()
-
-</details>
-<details>
-  <summary>RSA 加密算法</summary>
-
-  - 选择两个大素数 $p$ 和 $q$。
-  - 计算 $n = pq$ 和 $z = (p - 1)(q - 1)$。
-  - 选择一个小于 $n$ 的一个数 $e$，且使 $e$ 和 $z$ 没有公因数。
-  - 求一个数 $d$，使得 $ed - 1$ 可以被 $z$ 整除。
-  - 公钥为一对数 $(n, e)$，私钥是一对数 $(n, d)$。
-  - 加密算法为 $c = (m^e) mod (n)$，其中 $m$ 是明文，$c$ 是密文。
-  - 解密算法为 $m = (c^d) mod (n)$，其中 $m$ 是明文，$c$ 是密文。
-  > 参考：[计算机网络自顶向下方法 8.2.2-公开密钥加密]()
-
-</details>
-<details>
   <summary>介绍一下 ping 的过程，分别用到了哪些协议</summary>
 
   - 
 </details>
-<details>
-  <summary>一个 ip 配置多个域名，靠什么识别</summary>
-
-  - 根据 HTTP 报文段中的 HOST 字段识别。
-  > 参考：[http/1.0 和 http/1.1 的区别]()
-
-</details>
-<details>
-  <summary>服务器攻击（DDoS 攻击）</summary>
-
-  - DDoS ，即分布式拒绝服务，利用大量主机（肉鸡）向目标发送请求，消耗其网络带宽和系统资源，导致网络或系统不胜负荷以至于瘫痪而无法提供正常的服务。
-  - **如何应对 DDoS 攻击**：购买高防服务器；把参加 DDoS 攻击的主机加入黑名单；DDoS 清洗，把异常流量清洗掉；CDN 加速，把网站流量分配到各个节点中。
-  > 参考：[什么是 DDoS 攻击](https://www.zhihu.com/question/22259175)
-  
-</details>
 
 ## 操作系统
-<details>
-  <summary>为什么需要操作系统</summary>
-  
-  - **提供抽象**：操作系统可以隐藏硬件，呈现给程序良好、清晰、优雅、一致的抽象，将丑陋的硬件转变为美丽的抽象。
-  - **资源管理**：操作系统可以记录哪个程序在使用什么资源，对资源请求进行分配，评估使用代价，并且未不同的程序和用户调节互相冲突的资源请求。
-  > 参考：[现代操作系统 1.1-什么是操作系统]()
 
-</details>
+### 进程与线程
 <details>
   <summary>进程间通信</summary>
   
@@ -1565,7 +1636,7 @@
   <summary>死锁发生的必要条件</summary>
   
   - **互斥条件**：资源不能被共享，只能被一个进程独占。
-  - **占有和等待条件**：当进程因请求资源而阻塞时，对已获得的资源保持不放，并等待所需资源的到来。
+  - **占有和等待条件**：当进程因请求资源而阻塞���，对已获得的资源保持不放，并等待所需资源的到来。
   - **不可抢占条件**：已经分配给一个进程的资源不能强制性地被抢占，它只能披占有它的进程显式地释放。
   - **环路等待条件**：在发生死锁时��必然存在一个进程-资源的环形链，该环路中的每个进程都在等待若下一个进程所占有的资源。
   > [死锁面试题](https://blog.csdn.net/hd12370/article/details/82814348)
@@ -1592,6 +1663,87 @@
   > [现代操作系统 6.4-死锁检测与死锁恢复]()，[现代操作系统 6.5-死锁避免]()，[现代操作系统 6.6-死锁预防]()
   
 </details>
+<details>
+  <summary>进程的最大线程数</summary>
+
+  - 32位 Windows 下，一个进程虚拟地址空间为 4G（2^32），内核占 2G，留给用户只有 2G，一个线程默认栈的大小是 1M，所以一个进程最大开2048个线程。当然内存不会完全拿来做线程的栈，所以最大线程数实际值要小于2048，大概2000个。
+  - 32位 Linux 下，一个进程虚拟地址空间4G，内核占1G，用户留3G，一个线程默认栈的大小为 8M，所以最多380个左右线程。
+  - 可以通过修改默认栈的方式改变进程的最大线程数。
+  > 参考：[进程空间分配和堆栈大小](https://www.cnblogs.com/ladawn/p/8449399.html)
+
+</details>
+<details>
+  <summary>fork 功能</summary>
+  
+  - 在 UNIX系统中，只有一个系统调用可以用来创建进程：`fork`，这个系统调用会创建一个与调用进程相同的副本。在调用了 `fork` 以后，这两个进程（父进程与子进程）拥有相同的内存映像、同样的环境和同样的打开文件。
+  - 通常，在 `fork` 创建子进程后，子进程接着执行 `execve` 系统调用，以修改其内存映像并运行一个新的程序。例如，当用户在 shell 中键入命令 `sort` 后，shell 就创建一个子进程，这个子进程就执行 `sort`。
+  - 之所以要安排两步建立进程，是为了在 `fork` 之后但在 `execve` 之前允许该子进程处理其文件描述符，这样就可以完成对标准输入文件、标准输出文件和标准错误文件的重定向。
+  - 而在 Windows 中，使用 `CreateProcess` 代替 `fork` + `execve`，既处理进程的创建，也负责把正确的程序装入新的进程。
+  > 参考：[现代操作系统 2.1-进程]()
+
+</details>
+<details>
+  <summary>线程与进程的区别</summary>
+
+  - 进程是资源分配最小单位，线程是程序执行的最小单位。
+  - 进程有自己独立的地址空间，同一进程的线程共享本进程的地址空间。
+  - 一个进程崩溃后，不会对其他进程产生影响，但是一个线程崩溃整个进程都死掉。
+  - CPU切换一个线程比切换进程开销小。
+  - 创建一个线程比进程开销小。
+  - 线程之间通信更方便，同一个进程下，线程共享全局变量，静态变量等数据，进程之间的通信需要以通信的方式（IPC）进行。 
+  > 参考：[进程与线程的区别](https://blog.csdn.net/wsq119/article/details/82154305)
+
+</details>
+<details>
+  <summary>何时用多线程，何时用多进程</summary>
+  
+  - 对资源的管理和保护要求高，不限制开销和效率时，使用多进程。
+  - 要求效率高，频繁切换时，资源的保护管理要求不是很高时，使用多线程。
+  > 参考：[进程与线程的区别](https://blog.csdn.net/wsq119/article/details/82154305)
+
+</details>
+<details>
+  <summary>生产者消费者，读者写者，哲学家就餐</summary>
+  
+  
+</details>
+<details>
+  <summary>线程池的了解、优点、调度处理方式和保护任务队列的方式</summary>
+  
+
+</details>
+<details>
+  <summary>怎么回收线程</summary>
+  
+  - 使用 Posix 线程 。需要 `#include <pthread.h>`
+    - **创建线程**：`int pthread_create(pthread_t *tid, pthread_attr_t *attr, func *f, void *arg);`
+    - **终止线程**：`void  pthread_exit(void *thread_return);`
+    - **回收线程**：`int pthread_join(pthread_t tid, void **thread_return);`
+  - 使用 C++11 线程库。需要 `#include <thread>`
+  > 参考：[深入理解计算机系统 12.3-基于线程的并发编程]()
+
+</details>
+<details>
+  <summary>僵尸进程问题</summary>
+  
+  - 当一个进程终止时，内核并不是立即把他从系统中清除，相反，进程被保持在一种已终止的状态中，直到被他的父进程回收。当父进程回收已终止的子进程时，内核将子进程的退出状态传递给父进程，然后抛弃已终止的进程，从此时开始，该进程就不存在了。**一个终止了但是还未被回收的进程称为僵尸进程**。
+  - 在每个进程退出的时候,内核释放该进程所有的资源,包括打开的文件,占用的内存等。 但是仍然为其保留一定的信息，包括进程号，退出状态，运行时间等。直到父进程通过 `wait` 或者 `waitpid` 来取时才释放。
+  - **僵尸进程的危害**：如果父进程一直不调用 `wait` 或 `waitpid` 来回收已终止的子进程的话，那么他的进程号就一直被该僵尸进程占用，而系统的进程号是有限的，如果系统中有大量的僵尸进程，那么有可能会因为没有可用的进程号导致无法创建新的进程。
+  - **解决僵尸进程问题**
+    - **子进程退出时向父进程发送 SIGCHILD 信号**，父进程处理 SIGCHILD 信号，在信号处理函数中调用 `wait` 或者 `waitpid` 回收已终止进程。
+    - **将僵尸进程变为孤儿进程**，将产生大量僵尸进程的父进程杀死，这样该父进程产生的僵尸进程就变成了孤儿进程，孤儿进程将由 `init` 进程接管，`init` 进程将回收这些孤儿进程。
+  > [深入理解计算机系统 8.4.3-回收子进程]()，[孤儿进程与僵尸进程[总结]](https://www.cnblogs.com/Anker/p/3271773.html)
+
+</details>
+<details>
+  <summary>孤儿进程</summary>
+  
+  - 一个父进程退出，而他的一个或多个子进程还在运行，那么这些子进程将成为孤儿进程。孤儿进程将由 `init` 进程所收养（`init` 进程的 PID 为 1，是在系统启动时由内核创建的，他不会终止，是所有进程的祖先），`init` 进程会对孤儿进程进行回收。
+  > [深入理解计算机系统 8.4.3-回收子进程]()，[孤儿进程与僵尸进程[总结]](https://www.cnblogs.com/Anker/p/3271773.html)
+  
+</details>
+
+### 内存管理
 <details>
   <summary>共享内存在进程外如何访问，如何保证安全</summary>
 
@@ -1630,123 +1782,16 @@
 
 </details>
 <details>
-  <summary>fork 功能</summary>
+  <summary>分页与分段的区别</summary>
   
-  - 在 UNIX系统中，只有一个系统调用可以用来创建进程：`fork`，这个系统调用会创建一个与调用进程相同的副本。在调用了 `fork` 以后，这两个进程（父进程与子进程）拥有相同的内存映像、同样的环境和同样的打开文件。
-  - 通常，在 `fork` 创建子进程后，子进程接着执行 `execve` 系统调用，以修改其内存映像并运行一个新的程序。例如，当用户在 shell 中键入命令 `sort` 后，shell 就创建一个子进程，这个子进程就执行 `sort`。
-  - 之所以要安排两步建立进程，是为了在 `fork` 之后但在 `execve` 之前允许该子进程处理其文件描述符，这样就可以完成对标准输入文件、标准输出文件和标准错误文件的重定向。
-  - 而在 Windows 中，使用 `CreateProcess` 代替 `fork` + `execve`，既处理进程的创建，也负责把正确的程序装入新的进程。
-  > 参考：[现代操作系统 2.1-进程]()
+  - **目的不同**：分页是为了得到更大的线性地址，而不用增加物理内存；分段是为了程序和数据可以划分为逻辑上独立的地址空间。
+  - **大小是否可以改变**：页面是定长的，段不是定长的。
+  - **地址空间的维度**：分页是一维地址空间的，分段是二维地址空间的。由于程序的各页是根据程序地址空间连续编址的，只需给出一个虚拟地址就可以定位到物理地址，所以是一维地址空间；而对于分段来说，一个程序被拆分成各段，各段独立编址，各段从零开始编址，整个程序的地址不连续，需要给出段的起始地址和段内地址才能进行定位。
+  > 参考：[现代操作系统 3.7-分段]()，[为什么说分页管理的地址空间是一维的，而分段管理的地址空间是二维的](https://www.zhihu.com/question/21736290?sort=created)，[为什么分页机制中逻辑地址空间是一维的，而分段机制中逻辑地址空间是二维的](https://blog.csdn.net/yangkuiwu/article/details/53493458?utm_source=itdadao&utm_medium=referral)
 
 </details>
-<details>
-  <summary>中断过程，如何保存现场</summary>
 
-  - **中断过程**：识别中断源 $\Rightarrow$ 保护现场 $\Rightarrow$ 进入中断服务程序 $\Rightarrow$ 恢复现场 $\Rightarrow$ 中断返回
-  - **保护现场**：将一些寄存器压入栈。
-  > 参考：[操作系统-中断机制](https://blog.csdn.net/qq_41001071/article/details/90142906)
-
-</details>
-<details>
-  <summary>用户态与内核态的区别</summary>
-
-  - 内核态运行操作系统；用户态运行用户程序。
-  - 内核态的程序可以执行特权指令；用户态的程序不可以执行特权指令，但是可以执行非特权指令。
-  - 当程序运行在第 0 级特权级上时，那么就称其为运行在内核态；当程序运行在第 3 级特权级上时，那么就称其为运行在用户态。中间还有两个特权级可供虚拟机使用。
-  - 当处于用户态执行的时候，进程所能访问的内存空间和对象收到限制，其所占有的处理器时可以被抢占的；当处于内核态执行时，则能访问所有的内存空间和对象，且所占有的处理器是不允许被抢占的。
-  > 参考：[用户态和内核态的区别](https://www.cnblogs.com/gizing/p/10925286.html)
-
-</details>
-<details>
-  <summary>用户态与内核态的切换</summary>
-  
-  - **系统调用**：用户态进程通过系统调用申请使用操作系统提供的服务程序完成工作。
-  - **异常**：当 CPU 在执行运行在用户态下的程序时，发生了某些事先不可知的异常，这时会触发由当前运行进程切换到处理此异常的内核相关程序中，也就转到了内核态，比如缺页异常。
-  - **外部中断**：当外围设备完成用户请求的操作后，会向CPU发出相应的中断信号，这时CPU会暂停执行下一条即将要执行的指令转而去执行与中断信号对应的处理程序，如果先前执行的指令是用户态下的程序，那么这个转换的过程自然也就发生了由用户态到内核态的切换。
-  > 参考：[用户态和内核态的区别](https://www.cnblogs.com/gizing/p/10925286.html)
-
-</details>
-<details>
-  <summary>线程与进程的区别</summary>
-
-  - 进程是资源分配最小单位，线程是程序执行的最小单位。
-  - 进程有自己独立的地址空间，同一进程的线程共享本进程的地址空间。
-  - 一个进程崩溃后，不会对其他进程产生影响，但是一个线程崩溃整个进程都死掉。
-  - CPU切换一个线程比切换进程开销小。
-  - 创建一个线程比进程开销小。
-  - 线程之间通信更方便，同一个进程下，线程共享全局变量，静态变量等数据，进程之间的通信需要以通信的方式（IPC）进行。 
-  > 参考：[进程与线程的区别](https://blog.csdn.net/wsq119/article/details/82154305)
-
-</details>
-<details>
-  <summary>何时用多线程，何时用多进程</summary>
-  
-  - 对资源的管理和保护要求高，不限制开销和效率时，使用多进程。
-  - 要求效率高，频繁切换时，资源的保护管理要求不是很高时，使用多线程。
-  > 参考：[进程与线程的区别](https://blog.csdn.net/wsq119/article/details/82154305)
-
-</details>
-<details>
-  <summary>调用函数压栈</summary>
-  
-  - 几个概念：每个栈帧对应着一个未运行完的函数，栈帧中保存了该函数的返回地址和局部变量，ebp指向函数栈帧的底部，esp指向函数栈帧的顶部。
-  - 以 `main()` 函数调用一个函数 `void func(int var1, int var2);`为例，当 `main()` 函数执行到 `func()` 函数时，先将 `main()` 函数的**返回地址**压入栈中，然后将 **ebp** 的值压入栈中，将 esp 的值赋予 ebp，新 esp 的值则等于新的 ebp 的值减去需要的空间（*使用 push 和 pop 等操作才会自动改变 ebp 的值，而使用 move 改变栈空间并不会改变 esp 的值*），接着将 `func()` 函数的**参数从右向左**依次压入栈中。
-  > 参考：[函数调用过程中栈到底是怎么压入和弹出的](https://www.zhihu.com/question/22444939/answer/22200552)
-
-</details>
-<details>
-  <summary>生产者消费者，读者写者，哲学家就餐</summary>
-  
-  
-</details>
-<details>
-  <summary>海量数据的 bitmap 使用原理</summary>
-  
-  - bitmap 使用一个 bit 位来标记某个元素对应的 value，而该元素作为 key。key 和 value 应该是一一对应的。
-  - bitmap 用于海量数据的**排序**，**查询**，**去重**。如 20 亿个整数中找不不重复的整数个数，内存中无法存放 20 亿个整数，但是可以存放 20 亿个位，让位与整数一一对应，判重时只要看对应的位是否为 1 即可。
-  - 如果元素是字符串类型的，怎么将字符串类型映射到位图中去呢，这里不用 hash 函数，因为 hash 可能会将不同元素重复映射到一个位置上，可以反过来思考，将位图上的位映射到字符串元素，但仍然是使用元素作为 key，位作为 value。
-  - 如果数据量大到一定程度，由于元素和位是一一对应的，bitmap 的大小也可能也会超出内存范围，这时使用 bitmap 是不行的，可以引入布隆过滤器，布隆过滤器可以将数据元素映射到一个固定大小（好像不是）的位数组上，避免了 bitmap 带来的缺点。
-  > 参考：[bitmap 简介](https://www.cnblogs.com/cjsblog/p/11613708.html)，[漫画：什么是Bitmap算法](https://www.sohu.com/a/300039010_114877)
-
-</details>
-<details>
-  <summary>布隆过滤器原理与优点</summary>
-  
-  - **布隆过滤器原理**：当一个元素被加入集合时，**通过 K 个 Hash 函数将这个元素映射成一个位数组中的 K 个点，把它们置为 1**（使用多个 hash 是为了减少 hash 碰撞）。检索时，我们只要看看这些点是不是都是 1 就（大约）知道集合中有没有它了，如果这些点中有任何一个为 0，则被检元素一定不在，如果都是1，则被检元素很可能在。
-  ![avatar](./布隆过滤器.png)
-  - **布隆过滤器的优点**
-    - 增加和查询元素的**时间复杂度**都为 O(K)。
-    - Hash 函数相互之间没有关系，方便**硬件并行运算**。
-    - 布隆过滤器不需要存储元素本身，在某些对**保密要求**比较严格的场合有很大优势。
-    - 在能够承受一定的误判时，布隆过滤器比其他数据结构有着很大的**空间优势**。
-    - 数据量很大时，布隆过滤器可以表示全集，其他数据结构不能。
-  **布隆过滤器的缺点**
-    - 有误判率（存在哈希冲突），即不能准确判断元素是否在集合中（补救方法：再建立一个白名单，存储可能会误判的数据），
-    - 一般情况下不能从布隆过滤器中删除元素，因为如果删除一个元素在位数组中的映射，可能会删除掉其他元素在位数组中的部分映射。如将 `tencent` 的映射存入位数组，1、4、6上的位都被置 1，将 `baidu` 的映射存入位数组，2、4、7的位都被置为 1，如果要删除 `baidu`，那么 2，4，7上的位都置为 0，而 `tencent` 的有一个映射位于位置 4 上，所以如果将位置 4 的位置为 0，检索 `tencent` 的时候就检索不到了。
-    - 不能获取元素本身，因为无法从位图中逆推出元素。只能查找与插入。
-  - **布隆过滤器的应用场景**：**去重**和针对海量数据的**查询**。具体：网页黑名单，垃圾邮件过滤，url 去重，内容推荐。
-  > 参考：[分布式缓存击穿（布隆过滤器 Bloom Filter）](https://blog.csdn.net/fouy_yun/article/details/81075432)，[布隆过滤器-实现以及性能分析](https://blog.csdn.net/lovehang99/article/details/102157077)，[大量数据去重：Bitmap和布隆过滤器(Bloom Filter)](https://blog.csdn.net/zdxiq000/article/details/57626464)
-
-</details>
-<details>
-  <summary>同步 I/O 和异步 I/O</summary>
-  
-  - 同步 I/O 就是进程阻塞直到 I/O 完成，同步 I/O包括阻塞 I/O，非阻塞 I/O，I/O 复用，信号驱动 I/O。
-    - 阻塞 I/O：使用 `recv` 的进程一直等数据直到拷贝到用户空间，这段时间内进程始终阻塞。举个例子，A 同学用杯子装水，打开水龙头装满水然后离开，这一过程就可以看成是使用了阻塞 IO 模型，因为如果水龙头没有水，他也要等到有水并装满杯子才能离开去做别的事情。这种 IO 模型是同步的。
-    ![avatar](./阻塞IO.png)
-    - 非阻塞 I/O：让 `recv` 不管有没有获取到数据都返回，如果没有数据那么一段时间后再调用 `recv` 看看，如此循环。举个例子，B 同学也用杯子装水，打开水龙头后发现没有水，它离开了，过一会他又拿着杯子来看看，在中间离开的这些时间里，B 同学离开了装水现场（回到用户进程空间），可以做他自己的事情，这就是非阻塞 IO 模型。但是它只有是检查无数据的时候是非阻塞的，在数据到达的时候依然要等待复制数据到用户空间（等着水将水杯装满），因此它还是同步 IO。
-    ![avatar](./非阻塞IO.png)
-    - I/O 复用：这里在调用 `recv` 前先调用 `select` 或者 `poll`，这2个系统调用都可以在内核准备好数据（网络数据到达内核）时告知用户进程，这个时候再调用 `recv` 一定是有数据的。因此这一过程中它是阻塞于 `select` 或 `poll`，而没有阻塞于 `recv`，它也是同步 IO。这种 IO 模型比较特别，分个段,因为它能同时监听多个文件描述符（fd）。这个时候 C 同学来装水，发现有一排水龙头，舍管阿姨告诉他这些水龙头都还没有水，等有水了告诉他，于是等啊等（`select` 调用中），过了一会阿姨告诉他有水了，但不知道是哪个水龙头有水，自己看吧，于是C同学一个个打开，往杯子里装水（`recv`）。这里再顺便说说鼎鼎大名的 `epoll`（高性能的代名词啊），`epoll` 也属于 IO 复用模型，主要区别在于舍管阿姨会告诉 C 同学哪几个水龙头有水了，不需要一个个打开看（当然还有其它区别）。
-    ![avatar](./IO复用.png)
-    - 信号驱动 I/O：通过调用 `sigaction` 注册信号函数，等内核数据准备好的时候系统中断当前程序，执行信号函数（在这里面调用 `recv`）。D 同学让舍管阿姨等有水的时候通知他(（注册信号函数），没多久 D 同学得知有水了，跑去装水。是不是很像异步 IO，很遗憾，它还是同步IO（省不了装水的时间啊）。
-    ![avatar](./信号驱动IO.png)
-  - 异步 I/O 与同步 I/O 相反，当 I/O 完成后通知进程，中间没有任何阻塞。调用 `aio_read`，让内核等数据准备好，并且复制到用户进程空间后执行事先指定好的函数。E 同学让舍管阿姨将杯子装满水后通知他,整个过程 E 同学都可以做别的事情（没有 `recv`），这才是真正的异步IO。
-  ![avatar](./异步IO.png)
-  - 阻塞 I/O，非阻塞 I/O，I/O 复用，信号驱动 I/O 这些在 I/O 完成之前都有阻塞过程，所以都是同步 I/O，只有中间过程完全没有阻塞的才是异步 I/O。
-  ![avatar](./IO模型比较.png)
-  > 参考：[简述同步IO、异步IO、阻塞IO、非阻塞IO之间的联系与区别](https://www.cnblogs.com/felixzh/p/10345929.html)
-
-</details>
+### 文件系统
 <details>
   <summary>文件读写使用的系统调用</summary>
   
@@ -1782,64 +1827,6 @@
 
 </details>
 <details>
-  <summary>线程池的了解、优点、调度处理方式和保护任务队列的方式</summary>
-  
-
-</details>
-<details>
-  <summary>怎么回收线程</summary>
-  
-  - 使用 Posix 线程 。需要 `#include <pthread.h>`
-    - **创建线程**：`int pthread_create(pthread_t *tid, pthread_attr_t *attr, func *f, void *arg);`
-    - **终止线程**：`void  pthread_exit(void *thread_return);`
-    - **回收线程**：`int pthread_join(pthread_t tid, void **thread_return);`
-  - 使用 C++11 线程库。需要 `#include <thread>`
-  > 参考：[深入理解计算机系统 12.3-基于线程的并发编程]()
-
-</details>
-<details>
-  <summary>僵尸进程问题</summary>
-  
-  - 当一个进程终止时，内核并不是立即把他从系统中清除，相反，进程被保持在一种已终止的状态中，直到被他的父进程回收。当父进程回收已终止的子进程时，内核将子进程的退出状态传递给父进程，然后抛弃已终止的进程，从此时开始，该进程就不存在了。**一个终止了但是还未被回收的进程称为僵尸进程**。
-  - 在每个进程退出的时候,内核释放该进程所有的资源,包括打开的文件,占用的内存等。 但是仍然为其保留一定的信息，包括进程号，退出状态，运行时间等。直到父进程通过 `wait` 或者 `waitpid` 来取时才释放。
-  - **僵尸进程的危害**：如果父进程一直不调用 `wait` 或 `waitpid` 来回收已终止的子进程的话，那么他的进程号就一直被该僵尸进程占用，而系统的进程号是有限的，如果系统中有大量的僵尸进程，那么有可能会因为没有可用的进程号导致无法创建新的进程。
-  - **解决僵尸进程问题**
-    - **子进程退出时向父进程发送 SIGCHILD 信号**，父进程处理 SIGCHILD 信号，在信号处理函数中调用 `wait` 或者 `waitpid` 回收已终止进程。
-    - **将僵尸进程变为孤儿进程**，将产生大量僵尸进程的父进程杀死，这样该父进程产生的僵尸进程就变成了孤儿进程，孤儿进程将由 `init` 进程接管，`init` 进程将回收这些孤儿进程。
-  > [深入理解计算机系统 8.4.3-回收子进程]()，[孤儿进程与僵尸进程[总结]](https://www.cnblogs.com/Anker/p/3271773.html)
-
-</details>
-<details>
-  <summary>孤儿进程</summary>
-  
-  - 一个父进程退出，而他的一个或多个子进程还在运行，那么这些子进程将成为孤儿进程。孤儿进程将由 `init` 进程所收养（`init` 进程的 PID 为 1，是在系统启动时由内核创建的，他不会终止，是所有进程的祖先），`init` 进程会对孤儿进程进行回收。
-  > [深入理解计算机系统 8.4.3-回收子进程]()，[孤儿进程与僵尸进程[总结]](https://www.cnblogs.com/Anker/p/3271773.html)
-  
-</details>
-<details>
-  <summary>异常和中断的区别</summary>
-  
-
-</details>
-<details>
-  <summary>一般情况下在 Linux/windows 平台下栈空间的大小</summary>
-  
-  - 32位 Windows 下，进程栈的默认大小为 1M，线程栈的默认大小为 1M。
-  - 32为 Linux 下，进程栈的默认带下大小为 10M，线程栈的默认大小为 8M。
-  - 可以自行设置栈的大小。
-  > 参考：[进程空间分配和堆栈大小](https://www.cnblogs.com/ladawn/p/8449399.html)
-
-</details>
-<details>
-  <summary>分页与分段的区别</summary>
-  
-  - **目的不同**：分页是为了得到更大的线性地址，而不用增加物理内存；分段是为了程序和数据可以划分为逻辑上独立的地址空间。
-  - **大小是否可以改变**：页面是定长的，段不是定长的。
-  - **地址空间的维度**：分页是一维地址空间的，分段是二维地址空间的。由于程序的各页是根据程序地址空间连续编址的，只需给出一个虚拟地址就可以定位到物理地址，所以是一维地址空间；而对于分段来说，一个程序被拆分成各段，各段独立编址，各段从零开始编址，整个程序的地址不连续，需要给出段的起始地址和段内地址才能进行定位。
-  > 参考：[现代操作系统 3.7-分段]()，[为什么说分页管理的地址空间是一维的，而分段管理的地址空间是二维的](https://www.zhihu.com/question/21736290?sort=created)，[为什么分页机制中逻辑地址空间是一维的，而分段机制中逻辑地址空间是二维的](https://blog.csdn.net/yangkuiwu/article/details/53493458?utm_source=itdadao&utm_medium=referral)
-
-</details>
-<details>
   <summary>文件系统的理解</summary>
 
   - **文件**：文件是一种抽象机制，它**提供了一种在磁盘上保存信息而且方便以后读取的方法**。这种方法可以使用户不必了解存储信息的方法 、 位置和实际磁盘工作方式等有关细节。
@@ -1857,44 +1844,96 @@
   > 参考：[现代操作系统 4-文件系统]()，[硬盘基本知识](https://www.cnblogs.com/jswang/p/9071847.html)，[Linux系统硬链接和软链接](https://www.cnblogs.com/songgj/p/9115954.html)，[Linux 的 inode 的理解](https://blog.csdn.net/xuz0917/article/details/79473562?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-2.channel_param&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-2.channel_param)
 
 </details>
-<details>
-  <summary>I/O 复用的三种方法（select，poll，epoll）深入理解</summary>
 
-  - 假设有多路网络连接，如果所有连接共用一个线程，那么一个连接在等待数据的时候，其他连接同时也在等待这个连接结束，这个连接将阻塞后面所有的连接；如果为每一个连接都创建一个独立的线程，线程之间的切换将比较耗时，而且创建多个线程也比较占空间；如果所有连接共用一个线程，不主动等待数据，而是查询数据，查询是否有数据发送过来给连接，如果有数据就读取，这就是 I/O 复用。
-  - **I/O 复用的适用场景**
-    - 客户端处理多个 socket。
-    - 客户端同时处理连接和用户输入。
-    - 服务器同时处理 TCP 和 UDP。
-    - 服务器要监听多个端口。
-    - 服务器要同时处理监听 socket 和 连接 socket。
-  - **select** 允许应用程序监视一组文件描述符，等待一个或者多个描述符成为就绪状态，然后遍历所有的描述符，找到就绪的描述符，从而完成 I/O 操作。
-    - 函数原型：`int select(int n, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct timeval *timeout);`。
-    - `fd_set` 使用数组实现，数组大小使用 `FD_SETSIZE` 定义，所以只能监听少于 `FD_SETSIZE` 数量的描述符。
-    - 有三种类型的描述符类型：`readset`、`writeset`、`exceptset`，分别对应读、写、异常条件的描述符集合。
-    - `timeout` 为超时参数，**调用 `select` 会一直阻塞直到有描述符的事件到达或者等待的时间超过 `timeout`**。
-    - 成功调用返回结果大于 0，出错返回结果为 -1，超时返回结果为 0。
-    - 每次调用 `select`，都需要把 fd 集合从用户态拷贝到内核态，这个开销在 fd 很多时会很大。
-    - 同时每次调用 `select` 都需要在内核遍历传递进来的所有 fd 集合，这个开销在 fd 很多时也很大。
-    - select支持的文件描述符数量很少，默认是1024。
-  - **poll** 的功能与 select 类似，也是等待一组描述符中的一个成为就绪状态。
-    - 函数原型：`int poll(struct pollfd *fds, unsigned int nfds, int timeout);`。
-    - `poll` 没有描述符数量的限制。
-    - `poll` 中使用 pollfd 传输描述符数组，而不是 fd_set。
-  - **epoll** 允许应用程序监视一组文件描述符，等待一个或者多个描述符成为就绪状态，无需遍历描述符，因为会返回就绪的描述符。
-    - `int epoll_create(int size);`：内核中间加一个 ep 对象，把所有需要监听的 socket 都放到 ep 对象中。
-    - `int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);`：epoll_ctl 负责把 socket 增加、删除到内核的 ep 对象中。
-    - `int epoll_wait(int epfd, struct epoll_event * events, int maxevents, int timeout);`：epoll_wait 负责检测可读队列，一直阻塞直到有 socket 可读或者超时。
-    - epoll 有 EPOLLLT 和 EPOLLET 两种触发模式，LT 是默认模式，ET 是高速模式。
-    - LT 模式是水平触发。LT 模式下，事件就绪时，假设对事件没做处理，内核会反复通知事件就绪。
-    - ET 模式是边缘触发。ET 模式下，事件就绪时，内核只会在第一次通知事件就绪，通知之后进程必须立即处理事件，假设对事件没做处理，内核不会反复通知事件就绪。（*为什么 ET 模式要是非阻塞*）
-  > 参考：[I/O多路复用-概述与应用场景](https://my.oschina.net/u/2247638/blog/891197)，[I/O 多路复用是什么意思](https://www.zhihu.com/question/32163005)，[I/O多路复用技术是什么](https://www.zhihu.com/question/28594409)，[select、poll、epoll之间的区别](https://www.cnblogs.com/aspirant/p/9166944.html)，[彻底理解 I/O 多路复用！](https://mp.weixin.qq.com/s/PzOF9lFYVacPIRx0JakTjA)，[EPOLLLT和EPOLLET的区别](https://blog.csdn.net/u010325193/article/details/86413438?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-3.channel_param&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-3.channel_param)
+### 其他
+<details>
+  <summary>为什么需要操作系统</summary>
   
+  - **提供抽象**：操作系统可以隐藏硬件，呈现给程序良好、清晰、优雅、一致的抽象，将丑陋的硬件转变为美丽的抽象。
+  - **资源管理**：操作系统可以记录哪个程序在使用什么资源，对资源请求进行分配，评估使用代价，并且未不同的程序和用户调节互相冲突的资源请求。
+  > 参考：[现代操作系统 1.1-什么是操作系统]()
+
 </details>
 
-## Linux
+
+
 <details>
-  <summary>文件处理命令 grep，awk，sed</summary>
+  <summary>中断过程，如何保存现场</summary>
+
+  - **中断过程**：识别中断源 $\Rightarrow$ 保护现场 $\Rightarrow$ 进入中断服务程序 $\Rightarrow$ 恢复现场 $\Rightarrow$ 中断返回
+  - **保护现场**：将一些寄存器压入栈。
+  > 参考：[操作系统-中断机制](https://blog.csdn.net/qq_41001071/article/details/90142906)
+
+</details>
+<details>
+  <summary>用户态与内核态的区别</summary>
+
+  - 内核态运行操作系统；用户态运行用户程序。
+  - 内核态的程序可以执行特权指令；用户态的程序不可以执行特权指令，但是可以执行非特权指令。
+  - 当程序运行在第 0 级特权级上时，那么就称其为运行在内核态；当程序运行在第 3 级特权级上时，那么就称其为运行在用户态。中间还有两个特权级可供虚拟机使用。
+  - 当处于用户态执行的时候，进程所能访问的内存空间和对象收到限制，其所占有的处理器时可以被抢占的；当处于内核态执行时，则能访问所有的内存空间和对象，且所占有的处理器是不允许被抢占的。
+  > 参考：[用户态和内核态的区别](https://www.cnblogs.com/gizing/p/10925286.html)
+
+</details>
+<details>
+  <summary>用户态与内核态的切换</summary>
   
+  - **系统调用**：用户态进程通过系统调用申请使用操作系统提供的服务程序完成工作。
+  - **异常**：当 CPU 在执行运行在用户态下的程序时，发生了某些事先不可知的异常，这时会触发由当前运行进程切换到处理此异常的内核相关程序中，也就转到了内核态，比如缺页异常。
+  - **外部中断**：当外围设备完成用户请求的操作后，会向CPU发出相应的中断信号，这时CPU会暂停执行下一条即将要执行的指令转而去执行与中断信号对应的处理程序，如果先前执行的指令是用户态下的程序，那么这个转换的过程自然也就发生了由用户态到内核态的切换。
+  > 参考：[用户态和内核态的区别](https://www.cnblogs.com/gizing/p/10925286.html)
+
+</details>
+<details>
+  <summary>调用函数压栈</summary>
+  
+  - 几个概念：每个栈帧对应着一个未运行完的函数，栈帧中保存了该函数的返回地址和局部变量，ebp指向函数栈帧的底部，esp指向函数栈帧的顶部。
+  - 以 `main()` 函数调用一个函数 `void func(int var1, int var2);`为例，当 `main()` 函数执行到 `func()` 函数时，先将 `main()` 函数的**返回地址**压入栈中，然后将 **ebp** 的值压入栈中，将 esp 的值赋予 ebp，新 esp 的值则等于新的 ebp 的值减去需要的空间（*使用 push 和 pop 等操作才会自动改变 ebp 的值，而使用 move 改变栈空间并不会改变 esp 的值*），接着将 `func()` 函数的**参数从右向左**依次压入栈中。
+  > 参考：[函数调用过程中栈到底是怎么压入和弹出的](https://www.zhihu.com/question/22444939/answer/22200552)
+
+</details>
+<details>
+  <summary>海量数据的 bitmap 使用原理</summary>
+  
+  - bitmap 使用一个 bit 位来标记某个元素对应的 value，而该元素作为 key。key 和 value 应该是一一对应的。
+  - bitmap 用于海量数据的**排序**，**查询**，**去重**。如 20 亿个整数中找不不重复的整数个数，内存中无法存放 20 亿个整数，但是可以存放 20 亿个位，让位与整数一一对应，判重时只要看对应的位是否为 1 即可。
+  - 如果元素是字符串类型的，怎么将字符串类型映射到位图中去呢，这里不用 hash 函数，因为 hash 可能会将不同元素重复映射到一个位置上，可以反过来思考，将位图上的位映射到字符串元素，但仍然是使用元素作为 key，位作为 value。
+  - 如果数据量大到一定程度，由于元素和位是一一对应的，bitmap 的大小也可能也会超出内存范围，这时使用 bitmap 是不行的，可以引入布隆过滤器，布隆过滤器可以将数据元素映射到一个固定大小（好像不是）的位数组上，避免了 bitmap 带来的缺点。
+  > 参考：[bitmap 简介](https://www.cnblogs.com/cjsblog/p/11613708.html)，[漫画：什么是Bitmap算法](https://www.sohu.com/a/300039010_114877)
+
+</details>
+<details>
+  <summary>布隆过滤器原理与优点</summary>
+  
+  - **布隆过滤器原理**：当一个元素被加入集合时，**通过 K 个 Hash 函数将这个元素映射成一个位数组中的 K 个点，把它们置为 1**（使用多个 hash 是为了减少 hash 碰撞）。检索时，我们只要看看这些点是不是都是 1 就（大约）知道集合中有没有它了，如果这些点中有任何一个为 0，则被检元素一定不在，如果都是1，则被检元素很可能在。
+  ![avatar](./布隆过滤器.png)
+  - **布隆过滤器的优点**
+    - 增加和查询元素的**时间复杂度**都为 O(K)。
+    - Hash 函数相互之间没有关系，方便**硬件并行运算**。
+    - 布隆过滤器不需要存储元素本身，在某些对**保密要求**比较严格的场合有很大优势。
+    - 在能够承受一定的误判时，布隆过滤器比其他数据结构有着很大的**空间优势**。
+    - 数据量很大时，布隆过滤器可以表示全集，其他数据结构不能。
+  **布隆过滤器的缺点**
+    - 有误判率（存在哈希冲突），即不能准确判断元素是否在集合中（补救方法：再建立一个白名单，存储可能会误判的数据），
+    - 一般情况下不能从布隆过滤器中删除元素，因为如果删除一个元素在位数组中的映射，可能会删除掉其他元素在位数组中的部分映射。如将 `tencent` 的映射存入位数组，1、4、6上的位都被置 1，将 `baidu` 的映射存入位数组，2、4、7的位都被置为 1，如果要删除 `baidu`，那么 2，4，7上的位都置为 0，而 `tencent` 的有一个映射位于位置 4 上，所以如果将位置 4 的位置为 0，检索 `tencent` 的时候就检索不到了。
+    - 不能获取元素本身，因为无法从位图中逆推出元素。只能查找与插入。
+  - **布隆过滤器的应用场景**：**去重**和针对海量数据的**查询**。具体：网页黑名单，垃圾邮件过滤，url 去重，内容推荐。
+  > 参考：[分布式缓存击穿（布隆过滤器 Bloom Filter）](https://blog.csdn.net/fouy_yun/article/details/81075432)，[布隆过滤器-实现以及性能分析](https://blog.csdn.net/lovehang99/article/details/102157077)，[大量数据去重：Bitmap和布隆过滤器(Bloom Filter)](https://blog.csdn.net/zdxiq000/article/details/57626464)
+
+</details>
+<details>
+  <summary>异常和中断的区别</summary>
+  
+
+</details>
+<details>
+  <summary>一般情况下在 Linux/windows 平台下栈空间的大小</summary>
+  
+  - 32位 Windows 下，进程栈的默认大小为 1M，线程栈的默认大小为 1M。
+  - 32为 Linux 下，进程栈的默认带下大小为 10M，线程栈的默认大小为 8M。
+  - 可以自行设置栈的大小。
+  > 参考：[进程空间分配和堆栈大小](https://www.cnblogs.com/ladawn/p/8449399.html)
+
 </details>
 
 ## 数据结构
@@ -1990,8 +2029,6 @@
 <details>
   <summary>注意事项</summary>
   
-  - 当有多层嵌套循环的时候记得检查循环变量有无用错的地方。
-  - 
 
 </details>
 
@@ -2488,6 +2525,8 @@
 </details>
 
 ## 项目
+
+### 航路规划项目
 <details>
   <summary>航路规划模块介绍</summary>
   
@@ -2645,7 +2684,7 @@
   - **校验和原理**：校验和用于确定报文在传输过程中数据是否发生改变，Qt 中发送和接收的报文形式是 `QByteArray`，一个字符数组，发送数据时可以将所有字符的比特（*8位*）加在一起，然后将求得的和的反码添加进字符数组中，作为校验和，接收方的话，接收到数据以后就把字符数组中的所有字符（*包括校验和*）的比特加在一起，如果中途没有数据发生改变，那么接收方求得的和的比特应该为 8 个 1（*1111 1111*），如果这些比特中有一个为 0，那么就说明传输出现了错误。
   - **介绍一下 rdt3.0 机制**：
   - **如果两个模块发送的报文段同时到达主控模块，主控模块会接收这两个模块传来的报文段吗，还是只接收其中一个报文段**：
-  - **主控模块建立的 socket 是怎么样的，发送数据是广播的，一对多的，而接收数据又是一对一的**
+  - **主控模块建立的 socket 是怎么样的，发送数据是广播的，一对多的，而接收数据又是一对一的**：
   - **抓包**：
   ![avatar](./航路规划中的通信.jpg)
   > 参考：[计算机网络自顶向下方法 3.4-可靠数据传输原理]()
@@ -2747,7 +2786,8 @@
   > 参考：[]()
   
 </details>
-</details>
+
+### 机器人项目
 <details>
   <summary>机器人比赛介绍</summary>
   
@@ -2792,7 +2832,7 @@
   <summary>调试中遇到的问题</summary>
    
   - 大的问题不多，小问题很多，有些消磨人的耐心。
-  - 最大的问题就是确定整个机器人的设计。
+  - 最大的问题就是确定整个机器人设计方案的确定。
   - 
 </details>
 
