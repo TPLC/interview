@@ -2795,13 +2795,12 @@
 </details>
 <details>
   <summary>机器人程序流程</summary>
-  
-     
+
+  - 
 </details>
 <details>
   <summary>电机控制</summary>
    
-  - **PID 调节**：没有用到 PID 控制，
 </details>
 <details>
   <summary>舵机控制</summary>
@@ -2832,7 +2831,7 @@
   <summary>调试中遇到的问题</summary>
    
   - 大的问题不多，小问题很多，有些消磨人的耐心。
-  - 最大的问题就是确定整个机器人设计方案的确定。
+  - 最大的问题就是整个机器人设计方案的确定。
   - 
 </details>
 
