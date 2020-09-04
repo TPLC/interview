@@ -950,6 +950,98 @@
 
 </details>
 
+### C++ STL
+<details>
+  <summary>C++ 的 STL 介绍</summary>
+
+  - STL 是C++标准库的重要组成部分，不仅是一个可复用的组件库，而且是一个包罗数据结构和算法的软件框架。
+  - **STL 六大组件**
+    -  **容器**（Containers）：各种数据结构，如：`vector`、`list`、`deque`、`set`、`map`。用来存放数据。从实现的角度来看，STL容器是一种 class template。
+    - **算法**（algorithms）：各种常用算法，如：`sort`、`search`、`copy`、`erase`。从实现的角度来看，STL 算法是一种 function template。
+    - **迭代器**（iterators）：容器与算法之间的胶合剂，是所谓的“泛型指针”。共有五种类型，以及其他衍生变化。从实现的角度来看，迭代器是一种将 operator*、operator->、operator++、operator- - 等指针相关操作进行重载的 class template。所有 STL 容器都有自己专属的迭代器，只有容器本身才知道如何遍历自己的元素。原生指针也是一种迭代器。
+    - **仿函数**（functors）：行为类似函数，可作为算法的某种策略。从实现的角度来看，仿函数是一种重载了operator() 的 class 或 class template。一般的函数指针也可视为狭义的仿函数。
+    - **适配器**（adapters）：一种用来修饰容器、仿函数、迭代器接口的东西。例如：STL 提供的 queue 和 stack，虽然看似容器，但其实只能算是一种容器配接器，因为它们的底部完全借助 deque，所有操作都由底层的 deque 供应。改变 functors 接口者，称为 function adapter；改变 container 接口者，称为 container adapter；改变 iterator 接口者，称为 iterator adapter。
+    - **配置器**（allocators）：负责空间配置与管理。从实现的角度来看，配置器是一个实现了动态空间配置、空间管理、空间释放的 class template。
+    > 参考：[STL 简介和常见的面试题](https://blog.csdn.net/dreamispossible/article/details/89442263?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-6.nonecase&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-6.nonecase)
+    
+</details>
+<details>
+  <summary>STL 里 map 的底层实现</summary>
+
+  - map 使用**红黑树**作为底层实现。红黑树是一种二叉搜索树，红黑树的查找、插入、删除的时间复杂度都是 **O(logn)**，且性能稳定。（*相比于平衡二叉搜索树（AVL树），红黑树是一种弱平衡二叉搜索树，红黑树不需要要个保持高度平衡，其插入和删除时进行的旋转操作要比平衡二叉搜索树更少*）。
+  - map 中所有元素会根据元素的键值进行**自动排序**。
+  - map 所有元素都是 pair，pair 的第一元素视为 key，pair 的第二 元素视为 value。
+  - map 不允许两个元素拥有相同的 key。
+  - 不能修改元素的 key，因为 map 元素的 key 关系到 map 元素的排列规则；但是可以修改元素的 value，因为元素的 value 不会影响 map 的排列。
+  > 参考：[STL 源码剖析 5.4-map]()
+
+</details>
+<details>
+  <summary>STL 中 unordered_map 和 map 的区别</summary>
+
+  - map 的底层实现是红黑树；unordered_map 的底层实现是哈希表。
+  - map 内部元素是有序的；unordered_map 内部元素是无序的。
+  - map 查找的时间复杂度是 O(logn)；unordered_map 查找的时间复杂度是 O(1)，最坏是 O(n)。
+  - map 插入的时间复杂度是 O(logn)；unordered_map 插入的时间复杂度是 O(1)，最坏是 O(n)。
+  - map 删除的时间复杂度是 O(logn)；unordered_map 删除的时间复杂度是 O(1)，最坏是 O(n)。
+  - map 适用于有顺序要求的问题；unordered_map 适用于查找问题。  
+  > 参考：[c++ map与unordered_map区别及使用](https://blog.csdn.net/qq_21997625/article/details/84672775)
+
+</details>
+<details>
+  <summary>STL 中的 hash 表的实现</summary>
+
+  - **基本构思**：开辟物理地址连续的桶数组 ht[]，借助散列函数 hash()，将词条关键码 key 映射为桶地址 hash(key)，从而快速地确定待操作词条的物理位置。但是不同关键码可能映射到同一个桶，即发生哈希冲突。
+  - **封闭定址策略**：若新词条与旧词条发生冲突，允许建立新的数据结构，把这个桶内的数据转移到新的数据结构内。
+    - 多槽位法：将彼此冲突的每一组词条组织为一个小规模的子词典，分别存放于它们共同对应的桶单元中。
+    - 独立链法：令相互冲突的每组词条构成小规模的子词典， 采用列表来实现各子词典。
+    - 公共溢出法：在原散列表之外另设一个词典结构，一旦在插入词条时发生冲突就将该词条转存至这个新创建的词典结构中。
+  - **开放定址策略**：若新词条与已有词条冲突， 则只允许在散列表内部为其寻找另一空桶。
+    - 线性试探法：在插入关键码 key 时，若发现对应的桶单元被占用，那么就试探该桶单元后面的一个桶单元是否被占用，如果这个桶也被占用，那么继续往后找，直到发现一个可用空桶。
+    - 查找链：假定使用线性试探法，那么查找词条时从桶单元 ht[hash(key)] 开始查找，若没有找到，就试探后面的一个桶，如果还没有，就继续往后找，直到桶中为 key，或桶为空（最后一个桶的后面也看作空桶）。
+    - 懒惰删除：查找链中如果有任何一环缺失，都会导致无法抵达后续词条，为了解决这个问题，引入懒惰删除，再已经删除的同上设置一个标识，指示该桶虽然为空，但是此前存放过词条。  
+  > 参考：[数据结构 9.3-散列表]()
+
+</details>
+<details>
+  <summary>STL 中 vector 的实现</summary>
+
+  - vector 内部维护一个数组，当数组空间不足时，进行**扩容**，创建一个大小为原数组大小两倍的数组，复制原数组的内容到新数组中，然后释放原数组。
+  - 当装填因子（指向量规模与其内部数组的容量之比）小于某一阈值的时候，数组发生**下溢**。当装填因子小于 25% 的时候，创建一个大小为原数组大小一半的数组，复制原数组的内容到新数组，然后释放原数组。
+  > 参考：[数据结构 2-向量]()
+
+</details>
+<details>
+  <summary>STL 中 容器的内存分配</summary>
+ 
+  - STL 中的容器是模板类，容器元素（模板类中成员变量）的内存空间都由空间配置器（allocators）进行动态分配，由于一级空间配置器仅仅是包装了下 `malloc` 和 `free` 和 `realloc`，二级空间配置器是使用内存池进行分配，都是在堆上进行分配内存空间，所以容器元素都是分配到堆上的。需要注意的是，容器本身可以在堆上也可以在栈上，但是容器元素必须在堆上。（*容器是一个模板类，一个模板类对象可以存在于堆上或者栈上，模板类中有许多指针成员，每个指针指向一个容器元素所在的内存，这些指针指向的内存都是动态分配的，所以容器元素都是在堆上的*）
+  ```C++
+  #include <iostream>
+  #include <vector>
+  using namespace std;
+
+  int main() {
+      vector<int> v1 = {1, 2, 3};
+      vector<int>* v2 = new vector<int>(3, 0);
+      
+      cout << "v1 addr " << &v1 << endl; // 输出 v1 addr 0x61fdc0 
+      cout << "v1[0] addr " << &v1[0] << endl; // 输出 v1[0] addr 0x1c1660
+      cout << "v1[1] addr " << &v1[1] << endl; // 输出 v1[1] addr 0x1c1664
+      cout << "v1[2] addr " << &v1[2] << endl; // 输出 v1[2] addr 0x1c1668
+
+      cout << "v2 addr " << v2 << endl; // 输出 v2 addr 0x1c1680
+      cout << "v2[0] addr " << &(*v2)[0] << endl; // 输出 v2[0] addr 0x1c16a0
+      cout << "v2[1] addr " << &(*v2)[1] << endl; // 输出 v2[1] addr 0x1c16a4
+      cout << "v2[2] addr " << &(*v2)[2] << endl; // 输出 v2[2] addr 0x1c16a8
+
+      return 0;
+  }
+  ```
+  > 参考：[README.md 内存池]()
+
+</details>
+
+
 ### 其他
 
 <details>
@@ -1980,95 +2072,6 @@
 
 </details>
 
-## 数据结构
-<details>
-  <summary>C++ 的 STL 介绍</summary>
-
-  - STL 是C++标准库的重要组成部分，不仅是一个可复用的组件库，而且是一个包罗数据结构和算法的软件框架。
-  - **STL 六大组件**
-    -  **容器**（Containers）：各种数据结构，如：`vector`、`list`、`deque`、`set`、`map`。用来存放数据。从实现的角度来看，STL容器是一种 class template。
-    - **算法**（algorithms）：各种常用算法，如：`sort`、`search`、`copy`、`erase`。从实现的角度来看，STL 算法是一种 function template。
-    - **迭代器**（iterators）：容器与算法之间的胶合剂，是所谓的“泛型指针”。共有五种类型，以及其他衍生变化。从实现的角度来看，迭代器是一种将 operator*、operator->、operator++、operator- - 等指针相关操作进行重载的 class template。所有 STL 容器都有自己专属的迭代器，只有容器本身才知道如何遍历自己的元素。原生指针也是一种迭代器。
-    - **仿函数**（functors）：行为类似函数，可作为算法的某种策略。从实现的角度来看，仿函数是一种重载了operator() 的 class 或 class template。一般的函数指针也可视为狭义的仿函数。
-    - **适配器**（adapters）：一种用来修饰容器、仿函数、迭代器接口的东西。例如：STL 提供的 queue 和 stack，虽然看似容器，但其实只能算是一种容器配接器，因为它们的底部完全借助 deque，所有操作都由底层的 deque 供应。改变 functors 接口者，称为 function adapter；改变 container 接口者，称为 container adapter；改变 iterator 接口者，称为 iterator adapter。
-    - **配置器**（allocators）：负责空间配置与管理。从实现的角度来看，配置器是一个实现了动态空间配置、空间管理、空间释放的 class template。
-    > 参考：[STL 简介和常见的面试题](https://blog.csdn.net/dreamispossible/article/details/89442263?utm_medium=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-6.nonecase&depth_1-utm_source=distribute.pc_relevant.none-task-blog-BlogCommendFromMachineLearnPai2-6.nonecase)
-    
-</details>
-<details>
-  <summary>B- 树和 B+ 树的区别，分别是怎么实现的</summary>
-  
-  - 相对于在外存中操作，在内存中操作要快许多，所以我们尽量发数据放在内存中进行查找操作，但如果一个数据集十分庞大，无法放入内存，还是需要在外存中查询。查询过程中，如果每次从外存中只读取一个数据，I/O 操作过于频繁，效率是极低的；为了提高效率，可以**每次从外存中读取一批数据到内存**，再在这一批数据中查找目标值。为此引入多路搜索树，即 B- 树和 B+ 树。
-  - **m 阶 B- 树**
-    - 根节点至少有两个子女。
-    - 每个中间节点都包含 k - 1 个元素 和 k 个孩子，其中 $m/2 \leq k \leq m$。
-    - 每一个叶子节点都包含 k - 1 个元素，其中 $m/2 \leq k \leq m$。
-    - 所有的叶子节点都位于同一层。
-    - 每个节点中的元素从小到大排列，节点当中 k - 1 个元素正好是 k 个孩子包含的元素的值域划分。
-  ![avatar](./B-树.png)
-  - **m 阶 B+ 树**
-    - 有 k 个子树的中间节点包含有 k 个元素。
-    - 每个元素步保存数据，只用来索引。
-    - 所有数据保存在叶子节点。
-    - 所有的叶子节点中包含了全部元素的信息，及指向这些元素记录的指针。
-    - 叶子节点本身按照关键字的大小从小到大顺序来连接。
-    - 所有的中间节点元素都同时存在于子节点，在子节点元素中是最大（或最小）元素。
-  ![avatar](./B+树.png)
-  - **B- 树与 B+ 树对比**：
-    - B+ 树种没有卫星数据，同样大小的磁盘页可以容纳更多的节点元素，所以 B+ 树比 B- 树更加矮胖，**B+ 树查询时 I/O 次数更少**。
-    - B+ 树查询必须最终查找到叶子节点，而 B- 树只要找到匹配元素即可，所以 B- 树的查询是不稳定的，而 **B+ 树查询是稳定的**。
-    - 在范围查找中，B- 树需要先自上而下找到范围的下限，然后再进行中序遍历，一直到范围的上限；B+ 树需要先自上而下找到范围的下限，然后对叶子节点组成的链表进行遍历，一直到范围的上限。所以 **B+ 树范围查找更方便**。
-    ![avatar](./B+树与B-树的范围查找.png)
-  > 参考：[数据结构 8.2-B-树]()，[b+树图文详解](https://blog.csdn.net/qq_26222859/article/details/80631121)
-
-</details>
-<details>
-  <summary>STL 里 map 的底层实现</summary>
-
-  - map 使用**红黑树**作为底层实现。红黑树是一种二叉搜索树，红黑树的查找、插入、删除的时间复杂度都是 **O(logn)**，且性能稳定。（*相比于平衡二叉搜索树（AVL树），红黑树是一种弱平衡二叉搜索树，红黑树不需要要个保持高度平衡，其插入和删除时进行的旋转操作要比平衡二叉搜索树更少*）。
-  - map 中所有元素会根据元素的键值进行**自动排序**。
-  - map 所有元素都是 pair，pair 的第一元素视为 key，pair 的第二 元素视为 value。
-  - map 不允许两个元素拥有相同的 key。
-  - 不能修改元素的 key，因为 map 元素的 key 关系到 map 元素的排列规则；但是可以修改元素的 value，因为元素的 value 不会影响 map 的排列。
-  > 参考：[STL 源码剖析 5.4-map]()
-
-</details>
-<details>
-  <summary>STL 中 unordered_map 和 map 的区别</summary>
-
-  - map 的底层实现是红黑树；unordered_map 的底层实现是哈希表。
-  - map 内部元素是有序的；unordered_map 内部元素是无序的。
-  - map 查找的时间复杂度是 O(logn)；unordered_map 查找的时间复杂度是 O(1)，最坏是 O(n)。
-  - map 插入的时间复杂度是 O(logn)；unordered_map 插入的时间复杂度是 O(1)，最坏是 O(n)。
-  - map 删除的时间复杂度是 O(logn)；unordered_map 删除的时间复杂度是 O(1)，最坏是 O(n)。
-  - map 适用于有顺序要求的问题；unordered_map 适用于查找问题。  
-  > 参考：[c++ map与unordered_map区别及使用](https://blog.csdn.net/qq_21997625/article/details/84672775)
-
-</details>
-<details>
-  <summary>STL 中的 hash 表的实现</summary>
-
-  - **基本构思**：开辟物理地址连续的桶数组 ht[]，借助散列函数 hash()，将词条关键码 key 映射为桶地址 hash(key)，从而快速地确定待操作词条的物理位置。但是不同关键码可能映射到同一个桶，即发生哈希冲突。
-  - **封闭定址策略**：若新词条与旧词条发生冲突，允许建立新的数据结构，把这个桶内的数据转移到新的数据结构内。
-    - 多槽位法：将彼此冲突的每一组词条组织为一个小规模的子词典，分别存放于它们共同对应的桶单元中。
-    - 独立链法：令相互冲突的每组词条构成小规模的子词典， 采用列表来实现各子词典。
-    - 公共溢出法：在原散列表之外另设一个词典结构，一旦在插入词条时发生冲突就将该词条转存至这个新创建的词典结构中。
-  - **开放定址策略**：若新词条与已有词条冲突， 则只允许在散列表内部为其寻找另一空桶。
-    - 线性试探法：在插入关键码 key 时，若发现对应的桶单元被占用，那么就试探该桶单元后面的一个桶单元是否被占用，如果这个桶也被占用，那么继续往后找，直到发现一个可用空桶。
-    - 查找链：假定使用线性试探法，那么查找词条时从桶单元 ht[hash(key)] 开始查找，若没有找到，就试探后面的一个桶，如果还没有，就继续往后找，直到桶中为 key，或桶为空（最后一个桶的后面也看作空桶）。
-    - 懒惰删除：查找链中如果有任何一环缺失，都会导致无法抵达后续词条，为了解决这个问题，引入懒惰删除，再已经删除的同上设置一个标识，指示该桶虽然为空，但是此前存放过词条。  
-  > 参考：[数据结构 9.3-散列表]()
-
-</details>
-<details>
-  <summary>STL 中 vector 的实现</summary>
-
-  - vector 内部维护一个数组，当数组空间不足时，进行**扩容**，创建一个大小为原数组大小两倍的数组，复制原数组的内容到新数组中，然后释放原数组。
-  - 当装填因子（指向量规模与其内部数组的容量之比）小于某一阈值的时候，数组发生**下溢**。当装填因子小于 25% 的时候，创建一个大小为原数组大小一半的数组，复制原数组的内容到新数组，然后释放原数组。
-  > 参考：[数据结构 2-向量]()
-
-</details>
-
 ## 算法
 <details>
   <summary>注意事项</summary>
@@ -2099,6 +2102,33 @@
   - **隔离性**：数据库允许多个并发事务同时对其数据进行读写和修改的能力，隔离性可以防止多个事务并发执行时由于交叉执行而导致数据的不一致。事务隔离分为不同级别，包括读未提交（Read uncommitted）、读提交（read committed）、可重复读（repeatable read）和串行化（Serializable）。
   - **持久性**：事务处理结束后，对数据的修改就是永久的，即便系统故障也不会丢失。
   > 参考：[MySQL 事务](https://www.runoob.com/mysql/mysql-transaction.html)
+
+</details>
+<details>
+  <summary>B- 树和 B+ 树的区别，分别是怎么实现的</summary>
+  
+  - 相对于在外存中操作，在内存中操作要快许多，所以我们尽量发数据放在内存中进行查找操作，但如果一个数据集十分庞大，无法放入内存，还是需要在外存中查询。查询过程中，如果每次从外存中只读取一个数据，I/O 操作过于频繁，效率是极低的；为了提高效率，可以**每次从外存中读取一批数据到内存**，再在这一批数据中查找目标值。为此引入多路搜索树，即 B- 树和 B+ 树。
+  - **m 阶 B- 树**
+    - 根节点至少有两个子女。
+    - 每个中间节点都包含 k - 1 个元素 和 k 个孩子，其中 $m/2 \leq k \leq m$。
+    - 每一个叶子节点都包含 k - 1 个元素，其中 $m/2 \leq k \leq m$。
+    - 所有的叶子节点都位于同一层。
+    - 每个节点中的元素从小到大排列，节点当中 k - 1 个元素正好是 k 个孩子包含的元素的值域划分。
+  ![avatar](./B-树.png)
+  - **m 阶 B+ 树**
+    - 有 k 个子树的中间节点包含有 k 个元素。
+    - 每个元素步保存数据，只用来索引。
+    - 所有数据保存在叶子节点。
+    - 所有的叶子节点中包含了全部元素的信息，及指向这些元素记录的指针。
+    - 叶子节点本身按照关键字的大小从小到大顺序来连接。
+    - 所有的中间节点元素都同时存在于子节点，在子节点元素中是最大（或最小）元素。
+  ![avatar](./B+树.png)
+  - **B- 树与 B+ 树对比**：
+    - B+ 树种没有卫星数据，同样大小的磁盘页可以容纳更多的节点元素，所以 B+ 树比 B- 树更加矮胖，**B+ 树查询时 I/O 次数更少**。
+    - B+ 树查询必须最终查找到叶子节点，而 B- 树只要找到匹配元素即可，所以 B- 树的查询是不稳定的，而 **B+ 树查询是稳定的**。
+    - 在范围查找中，B- 树需要先自上而下找到范围的下限，然后再进行中序遍历，一直到范围的上限；B+ 树需要先自上而下找到范围的下限，然后对叶子节点组成的链表进行遍历，一直到范围的上限。所以 **B+ 树范围查找更方便**。
+    ![avatar](./B+树与B-树的范围查找.png)
+  > 参考：[数据结构 8.2-B-树]()，[b+树图文详解](https://blog.csdn.net/qq_26222859/article/details/80631121)
 
 </details>
 <details>
@@ -2795,7 +2825,8 @@
 <details>
   <summary>测试问题</summary>
   
-  - 为保证算法部分的代码 bug-free，需要提供测试。
+  - 为保证算法部分的代码 bug-free，需要提供测试，对函数进行单元测试，对整个模块进行功能测试。
+  - 提供的测试用例应该有正确用例，错误用例，边界用例
   - 可以用 `assert` 断言来实现简单的测试，如 `assert(2 == Add(1, 1));` 和 `assert(1 != Add(1, 1));`。
   - 也可以使用 gtest 进行测试，gtest 提供两种类型的 `TEST` 宏，一个是 `ASSERT_` 宏，如果当前点检测失败则退出当前测试函数（*注意是退出函数，而不是退出程序，`assert` 则是直接退出程序*），一个是 `EXPECT_` 宏，如果当前点检测失败则继续往下执行。
   ```C++
@@ -2866,17 +2897,21 @@
 </details>
 <details>
   <summary>策略</summary>
-   
-
+ 
+  - 
 </details>
 <details>
   <summary>通信</summary>
    
+  - **SPI**：
+  - **IIC**：
+  - **UART**：
 
 </details>
 <details>
   <summary>姿态获取和调整</summary>
-   
+
+  - **陀螺仪**：
 
 </details>
 <details>
@@ -2891,6 +2926,48 @@
     - **电子**：
     - **软件**：
     
+</details>
+
+## 智力题
+<details>
+  <summary>金条问题</summary>
+    
+  - 工匠为商人工作七天，总共的酬劳是一根长度为 1 的金条，工匠每天都需要收到酬劳，规定商人只能将金条切两次，应该怎么切能满足要求。
+  - 可以切两次，将金条分为三份，长度分别为 1/7，2/7，4/7，第一天商人给工匠 1/7 长度的金条，第二天商人从工匠那里拿回 1/7 长度的金条，并给他 2/7 长度的金条，第三天商人将 1/7 长度的金条给工匠，第四天商人从工匠那里拿回 1/7 和 2/7 长度的金条，并给他 4/7 长度的金条，第五天商人将 1/7 长度的金条给工匠，第六天商人从工匠那里拿回 1/7 长度的金条，并将 2/7 长度的金条给工匠，第七天商人将 1/7 长度的金条给工匠。
+  > 参考：[程序员常见智力题 30 道](https://www.nowcoder.com/discuss/414594)
+
+</details>
+ <details>
+  <summary>老鼠和毒药</summary>
+    
+  - 实验室有 100 个瓶子，其中一瓶装有慢性毒药（1 小时后发作），另外 99 瓶是蒸馏水，至少需要多少只小白鼠才能够在 1 小时内找出哪一瓶是慢性毒药。
+  - 利用排列组合的思想，小白鼠吃和不吃是两种状态，如果有 n 个小白鼠的话，所有老鼠的状态组合可以为 $2^n$ 种情况，求得 $2^7 = 128 > 100$，可以利用 7 个小白鼠的组合状态可以对应 100 瓶中的任何一瓶，一个小时过去后，如果这 100 瓶中有一个装有毒药，那么将存在一种组合状态，那么可以根据这个组合状态找到对应的那瓶装有毒药的瓶子。
+  > 参考：[程序员常见智力题 30 道](https://www.nowcoder.com/discuss/414594)
+
+</details>
+ <details>
+  <summary>倒水问题 1</summary>
+    
+  - 一个装了 10L 水的桶，一个 7L 的桶，一个 3L 的桶，怎样变成 2 个 5L。
+  - (10, 0, 0) $\Rightarrow$ (7, 0, 3) $\Rightarrow$ (7, 3, 0) $\Rightarrow$ (4, 3, 3) $\Rightarrow$ (4, 6, 0) $\Rightarrow$ (1, 6, 3) $\Rightarrow$ (1, 7, 2) $\Rightarrow$ (8, 0, 2) $\Rightarrow$ (8, 2, 0) $\Rightarrow$ (5, 2, 3) $\Rightarrow$ (5, 5, 0)。
+  > 参考：[程序员常见智力题 30 道](https://www.nowcoder.com/discuss/414594)
+
+</details>
+ <details>
+  <summary>倒水问题 2</summary>
+    
+  - 如果你有无穷多的水，一个 3 夸脱的和一个 5 夸脱的提桶，你如何准确称出 4 夸脱的水。
+  - (0, 5) $\Rightarrow$ (3, 0) $\Rightarrow$ (0, 3) $\Rightarrow$ (3, 3) $\Rightarrow$ (1, 5) $\Rightarrow$ (1, 0) $\Rightarrow$ (0, 1) $\Rightarrow$ (3, 1) $\Rightarrow$ (0, 4)。
+  > 参考：[程序员常见智力题 30 道](https://www.nowcoder.com/discuss/414594)
+
+</details>
+ <details>
+  <summary>舀酒问题</summary>
+    
+  - 店里有两个舀酒的勺子，分别能舀 7 两和 11 两，买家希望买 2 两酒，应该怎么做。
+  - (0, 11) $\Rightarrow$ (7, 4) $\Rightarrow$ (0, 4) $\Rightarrow$ (4, 0) $\Rightarrow$ (4, 11) $\Rightarrow$ (7, 8) $\Rightarrow$ (0, 8) $\Rightarrow$ (7, 1) $\Rightarrow$ (0, 1) $\Rightarrow$ (1, 11) $\Rightarrow$ (7, 5) $\Rightarrow$ (0, 5) $\Rightarrow$ (5, 0) $\Rightarrow$ (5, 11) $\Rightarrow$ (7, 9) $\Rightarrow$ (0, 9) $\Rightarrow$ (7, 2)。
+  > 参考：[程序员常见智力题 30 道](https://www.nowcoder.com/discuss/414594)
+
 </details>
 
 ## 其他
