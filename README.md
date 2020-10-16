@@ -1,6 +1,6 @@
 ## C++
 
-### C++ 指针和引用
+#### C++ 指针和引用
 <details>
   <summary>指针和引用的区别</summary>
   
@@ -179,7 +179,7 @@
 
 </details>
 
-### C++ 内存管理
+#### C++ 内存管理
 <details>
   <summary>堆和栈的区别</summary>
 
@@ -343,7 +343,7 @@
 
 </details>
 
-### C++ 关键字
+#### C++ 关键字
 <details>
   <summary>struct 和 class 的区别</summary>
 
@@ -548,7 +548,7 @@
 
 </details>
 
-### C++ 面向对象
+#### C++ 面向对象
 
 <details>
   <summary>C++ 三大特性概括</summary>
@@ -932,7 +932,7 @@
 
 </details>
 
-### C++ 多线程
+#### C++ 多线程
 <details>
   <summary>C++11 中的线程库</summary>
 
@@ -948,7 +948,7 @@
 
 </details>
 
-### C++ STL
+#### C++ STL
 <details>
   <summary>C++ 的 STL 介绍</summary>
 
@@ -1040,7 +1040,7 @@
 </details>
 
 
-### 其他
+#### 其他
 
 <details>
   <summary>编译过程中各阶段所作工作</summary>
@@ -1225,7 +1225,7 @@
 
 ## 网络
 
-### HTTP
+#### HTTP
 <details>
   <summary>HTTP 与 HTTPS 的区别及 HTTPS 流程</summary>
   
@@ -1323,7 +1323,7 @@
 
 </details>
 
-### TCP 和 UDP
+#### TCP 和 UDP
 <details>
   <summary>TCP 粘包拆包</summary>
 
@@ -1488,7 +1488,7 @@
 
 </details>
 
-### 网络编程
+#### 网络编程
 <details>
   <summary>socket 网络编程</summary>
   
@@ -1576,7 +1576,7 @@
   
 </details>
 
-### 网络安全
+#### 网络安全
 <details>
   <summary>对称加密和非对称加密体系</summary>
 
@@ -1629,7 +1629,7 @@
   
 </details>
 
-### 其他
+#### 其他
 <details>
   <summary>从浏览器中输入一个 url 到回显的全过程</summary>
 
@@ -1715,7 +1715,7 @@
 
 ## 操作系统
 
-### 进程与线程
+#### 进程与线程
 <details>
   <summary>进程间通信</summary>
   
@@ -1884,7 +1884,7 @@
   
 </details>
 
-### 内存管理
+#### 内存管理
 <details>
   <summary>共享内存在进程外如何访问，如何保证安全</summary>
 
@@ -1932,7 +1932,7 @@
 
 </details>
 
-### 文件系统
+#### 文件系统
 <details>
   <summary>文件读写使用的系统调用</summary>
   
@@ -1986,7 +1986,7 @@
 
 </details>
 
-### 其他
+#### 其他
 <details>
   <summary>为什么需要操作系统</summary>
   
@@ -2109,12 +2109,114 @@
 
 </details>
 
-## 算法
+## 数据结构
+
 <details>
-  <summary>注意事项</summary>
+  <summary>向量</summary>
   
 
 </details>
+<details>
+  <summary>列表</summary>
+
+</details>
+<details>
+  <summary>栈</summary>
+  
+
+</details>
+<details>
+  <summary>队列</summary>
+  
+
+</details>
+<details>
+  <summary>二叉树</summary>
+  
+
+</details>
+<details>
+  <summary>图</summary>
+  
+
+</details>
+<details>
+  <summary>搜索树</summary>
+  
+
+</details>
+<details>
+  <summary>高级搜索树</summary>
+  
+
+</details>
+<details>
+  <summary>词典</summary>
+  
+
+</details>
+<details>
+  <summary>优先级队列</summary>
+  
+
+</details>
+<details>
+  <summary>串</summary>
+  
+
+</details>
+
+## 算法
+
+#### 排序
+<details>
+  <summary>快速排序</summary>
+  
+  - 算法实现：
+  ```C++
+  
+  ```
+
+</details>
+<details>
+  <summary>堆排序</summary>
+  
+  - 算法思路：
+
+</details>
+<details>
+  <summary>归并排序</summary>
+  
+  - 算法思路：
+
+</details>
+<details>
+  <summary>冒泡排序</summary>
+  
+  - 算法思路：
+  ```C++
+  ```
+
+</details>
+<details>
+  <summary>算法比较</summary>
+  
+
+</details>
+
+#### 双指针
+
+#### 二分查找
+
+#### 广度优先搜索 
+
+#### 深度优先搜索
+
+#### 回溯搜索
+
+#### 贪心思想
+
+#### 动态规划
 
 ## 数据库
 <details>
@@ -2636,20 +2738,9 @@
 
 </details>
 
-## 自我介绍
-<details>
-  <summary>自我介绍</summary>
-  
-  - 面试官好，我叫李崇，是南京理工大学控制工程的一名硕士研究生。
-  - 本科期间，曾参加中国机器人大赛，负责机器人的程序编写和调试，在比赛的准备过程中，充分锻炼了解决问题和团队合作的能力。
-  - 研究生期间，参与了某海上作战项目，负责航路规划模块，实现了一种航路规划算法，还开发了用于验证航路规划算法可行性的桌面软件。
-  - 以上就是我的自我介绍，谢谢！
-
-</details>
-
 ## 项目
 
-### 航路规划项目
+#### 航路规划项目
 <details>
   <summary>航路规划模块介绍</summary>
   
@@ -2911,7 +3002,7 @@
   
 </details>
 
-### 机器人项目
+#### 机器人项目
 <details>
   <summary>机器人比赛介绍</summary>
   
@@ -3135,41 +3226,14 @@
 </details>
 
 ## hr 问题
-<details>
-  <summary>Git 与 GtiHub</summary>
-  
-  
-</details>
-<details>
-  <summary>不是计算机相关专业，为什么选择计算机就业方向</summary>
-  
-  - 
-</details>
-<details>
-  <summary>最近在看的书</summary>
-  
 
-</details>
 <details>
-  <summary>对你提升最大的一本书</summary>
+  <summary>自我介绍</summary>
   
-
-</details>
-<details>
-  <summary>今后想做的方向</summary>
-  
-  
-</details>
-<details>
-  <summary>反问</summary>
-  
-  
-</details>
-<details>
-  <summary>家庭</summary>
-  
-  - 父母，个体户。
-  - 姐姐，老师。
+  - 面试官好，我叫李崇，是南京理工大学控制工程的一名硕士研究生。
+  - 本科期间，曾参加中国机器人大赛，负责机器人的程序编写和调试，在比赛的准备过程中，充分锻炼了解决问题和团队合作的能力。
+  - 研究生期间，参与了某海上作战项目，负责航路规划模块，实现了一种航路规划算法，还开发了用于验证航路规划算法可行性的桌面软件。
+  - 以上就是我的自我介绍，谢谢！
 
 </details>
 <details>
